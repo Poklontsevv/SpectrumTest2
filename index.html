@@ -116,9 +116,11 @@
             background-color: var(--primary-bg); border: 2px solid var(--border-color); padding: 30px; 
             border-radius: 8px; text-align: center; max-width: 600px; width: 90%;
         }
+        .modal-content h2 { font-size: 16px; color: var(--glow-color); margin-bottom: 20px; line-height: 1.5; }
         .modal-content p {
+            font-size: 10px;
             text-align: left;
-            line-height: 1.6;
+            line-height: 1.8;
         }
         
         #lootModal .modal-content {
@@ -842,7 +844,7 @@
         document.getElementById('closeLootBtn').onclick = () => lootModal.classList.remove('visible');
         
         setupTouchControls();
-        showModal("На заре мира", "Вы – молодой исследователь... Используйте WASD/Стрелки для движения и W/Вверх для прыжка. ENTER для взаимодействия. Будьте осторожны в шахтах, там обитают призраки!", gameLoop);
+        showModal("Мир был разбит...", "Корпорация высосала спектральную энергию людей... тьма породила призрачные тени... Ты - Избранный и твоя задача - очистить мир и возродить источник чистой энергии.", gameLoop);
     </script>
 </body>
 </html>
