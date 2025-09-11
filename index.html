@@ -333,6 +333,19 @@
             }
         });
 
+        function setupTouchControls() {
+            if (!('ontouchstart' in window || navigator.maxTouchPoints > 0)) return;
+            document.getElementById('touch-controls').style.display = 'flex';
+            const touchMap = { 'touch-up': 'up', 'touch-down': 'down', 'touch-left': 'left', 'touch-right': 'right' };
+            for (const [btnId, key] of Object.entries(touchMap)) {
+                const btn = document.getElementById(btnId);
+                btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key].pressed = true; });
+                btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[key].pressed = false; });
+            }
+            document.getElementById('touch-interact').addEventListener('touchstart', (e) => { e.preventDefault(); handleInteraction(); });
+        }
+
+
         function handleInteraction() {
             const p = gameState.player;
             if (p.canInteract && p.interactionTarget) {
@@ -761,6 +774,7 @@
         }
         document.getElementById('closeLootBtn').onclick = () => lootModal.classList.remove('visible');
         
+        setupTouchControls();
         showModal("На заре мира", "Вы – молодой исследователь... Используйте WASD/Стрелки для движения и W/Вверх для прыжка. ENTER для взаимодействия. Будьте осторожны в шахтах, там обитают призраки!", gameLoop);
     </script>
 </body>
