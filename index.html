@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Спектральный Сборщик</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,18 +20,22 @@
             --font-pixel: 'Press Start 2P', cursive;
         }
 
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+
         body {
             background-color: var(--primary-bg);
             color: var(--text-color);
             font-family: var(--font-pixel);
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
-            overflow: hidden;
         }
-
+        
         .game-container {
             display: flex;
             flex-direction: column;
@@ -40,13 +44,21 @@
             width: 100%;
             max-width: 800px;
             padding: 10px;
+            box-sizing: border-box;
         }
         
+        .game-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 800 / 450;
+        }
+
         canvas {
             background-color: #000;
             border: 2px solid var(--border-color);
             border-radius: 8px;
             width: 100%;
+            height: 100%;
             image-rendering: pixelated;
         }
 
@@ -61,6 +73,7 @@
             width: 100%;
             box-sizing: border-box;
             user-select: none;
+            flex-shrink: 0;
         }
         
         .resource-panel, .upgrade-panel {
@@ -68,263 +81,401 @@
             flex-direction: column;
             gap: 10px;
         }
-
-        .resource-display {
-            font-size: 12px;
-            text-shadow: 0 0 5px var(--glow-color);
-        }
         
+        .player-stats { display: flex; align-items: center; gap: 15px; margin-top: 5px; }
+        #life-container { font-size: 24px; color: #ff4757; letter-spacing: 2px; }
+
         .action-button {
              background-color: var(--button-bg);
-            border: 2px solid var(--border-color);
-            color: var(--text-color);
-            padding: 10px;
-            margin-top: 5px;
-            font-family: var(--font-pixel);
-            font-size: 10px;
-            cursor: pointer;
-            border-radius: 5px;
-            text-align: center;
+            border: 2px solid var(--border-color); color: var(--text-color); padding: 10px;
+            font-family: var(--font-pixel); font-size: 10px; cursor: pointer; border-radius: 5px; text-align: center;
         }
-        .action-button:hover {
-            background-color: var(--button-hover-bg);
-        }
+        .action-button:hover { background-color: var(--button-hover-bg); }
 
         .upgrade-button {
-            background-color: var(--button-bg);
-            border: 2px solid var(--border-color);
-            color: var(--text-color);
-            padding: 10px;
-            font-family: var(--font-pixel);
-            font-size: 10px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            border-radius: 5px;
-            text-align: left;
-        }
-
-        .upgrade-button:hover:not(:disabled) {
-            background-color: var(--button-hover-bg);
-        }
-        
-        .upgrade-button:disabled {
-            background-color: var(--button-disabled-bg);
-            color: #94a3b8;
-            cursor: not-allowed;
+            background-color: var(--button-bg); border: 2px solid var(--border-color); color: var(--text-color);
+            padding: 10px; font-family: var(--font-pixel); font-size: 10px; cursor: pointer;
+            transition: background-color 0.2s; border-radius: 5px; text-align: left;
         }
         
         .cost { display: block; font-size: 8px; color: #94a3b8; margin-top: 5px; }
         .level { float: right; }
 
         .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.85);
-            display: flex; justify-content: center; align-items: center;
-            opacity: 0; visibility: hidden;
-            transition: opacity 0.3s, visibility 0.3s;
-            z-index: 1000;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.85);
+            display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s; z-index: 1000;
         }
         .modal-overlay.visible { opacity: 1; visibility: visible; }
-
         .modal-content {
-            background-color: var(--primary-bg);
-            border: 2px solid var(--border-color);
-            padding: 30px; border-radius: 8px; text-align: center;
-            max-width: 600px;
-            width: 90%;
+            background-color: var(--primary-bg); border: 2px solid var(--border-color); padding: 30px; 
+            border-radius: 8px; text-align: center; max-width: 600px; width: 90%;
         }
-        .modal-content h2 { font-size: 18px; color: var(--glow-color); margin-bottom: 20px; }
-        .modal-content p { font-size: 12px; line-height: 1.6; }
-        .modal-button {
-            background-color: var(--button-bg); border: 2px solid var(--border-color);
-            color: var(--text-color); padding: 12px 20px; margin-top: 25px;
-            font-family: var(--font-pixel); font-size: 12px; cursor: pointer; border-radius: 5px;
+        .modal-content p {
+            text-align: left;
+            line-height: 1.6;
+        }
+        
+        #lootModal .modal-content {
+            max-width: 350px;
         }
 
-        /* Inventory & Loot styles */
         #inventoryGrid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-            gap: 10px;
-            max-height: 300px;
-            min-height: 140px; /* Добавлено, чтобы сетка была видна, даже если пуста */
-            overflow-y: auto;
-            padding: 10px;
-            background: rgba(0,0,0,0.3);
-            border-radius: 5px;
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 10px;
+            max-height: 300px; min-height: 140px; overflow-y: auto; padding: 10px;
+            background: rgba(0,0,0,0.3); border-radius: 5px;
         }
         .inventory-slot {
-            width: 60px; height: 60px;
-            background-color: var(--button-bg);
-            border: 2px solid var(--border-color);
-            border-radius: 5px;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            width: 60px; height: 60px; background-color: var(--button-bg); border: 2px solid var(--border-color);
+            border-radius: 5px; position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer;
         }
+        .inventory-slot.active { border-color: var(--glow-color); box-shadow: 0 0 10px var(--glow-color); }
         .inventory-slot canvas { width: 40px; height: 40px; background: none; border: none; }
         .item-count {
-            position: absolute; bottom: 2px; right: 4px;
-            font-size: 10px; color: white;
-            text-shadow: 1px 1px 2px black;
+            position: absolute; bottom: 2px; right: 4px; font-size: 10px; color: white; text-shadow: 1px 1px 2px black;
         }
-        #lootContainer {
-            display: flex; flex-direction: column; gap: 15px; align-items: center;
-        }
+        
         .loot-item {
-            display: flex; align-items: center; gap: 15px;
+            display: flex; align-items: center; justify-content: center; gap: 15px;
             font-size: 14px;
         }
         .loot-item canvas { width: 40px; height: 40px; background: none; border: none; }
+        
+        #mine-hud {
+            display: none;
+            width: 100%;
+            background-color: var(--ui-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 15px;
+            box-sizing: border-box;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+        }
+        #mine-hud.visible {
+            display: flex;
+        }
+        .tool-display { display: flex; flex-direction: column; align-items: center; gap: 5px;}
+        .mine-hud-stats { display: flex; align-items: center; gap: 20px; }
+        #tool-durability { font-size: 10px; }
 
-        @media (max-width: 600px) {
-            .ui-panel { grid-template-columns: 1fr; }
+        #touch-controls {
+            position: fixed; bottom: 10px; left: 0; width: 100%;
+            display: none; justify-content: space-between; align-items: flex-end;
+            padding: 0 20px; box-sizing: border-box;
+            z-index: 1001; pointer-events: none;
+        }
+        .d-pad, .action-pad { pointer-events: auto; }
+        .d-pad { display: grid; grid-template-areas: ". up ." "left . right" ". down ."; gap: 15px; }
+        .touch-btn {
+            width: 50px; height: 50px; background: rgba(0,0,0,0.4); border: 2px solid rgba(255,255,255,0.5);
+            color: white; border-radius: 50%; font-size: 20px; display: flex; justify-content: center; align-items: center;
+        }
+        #touch-up { grid-area: up; } #touch-left { grid-area: left; } #touch-right { grid-area: right; } #touch-down { grid-area: down; }
+        #touch-interact { width: 70px; height: 70px; font-size: 24px; }
+
+
+        @media (max-width: 820px) and (orientation: portrait) {
+            body { justify-content: flex-start; }
+            .game-container { justify-content: space-between; height: 100%;}
+            .ui-panel, #mine-hud { grid-template-columns: 1fr; }
+            #mine-hud { flex-direction: column; gap: 15px; }
         }
     </style>
 </head>
 <body>
 
     <div class="game-container">
-        <canvas id="gameCanvas" width="800" height="450"></canvas>
+        <div class="game-wrapper">
+            <canvas id="gameCanvas" width="800" height="450"></canvas>
+        </div>
         <div class="ui-panel">
             <div class="resource-panel">
-                <div class="resource-display" id="energyDisplay">ЭНЕРГИЯ: 0 / 100</div>
-                <div class="resource-display" id="efficiencyDisplay">ЭФФЕКТИВНОСТЬ: 50%</div>
-                <div class="resource-display" id="stabilityDisplay">СТАБИЛЬНОСТЬ: 100%</div>
-                <button class="action-button" id="inventoryBtn">ИНВЕНТАРЬ</button>
+                 <div class="resource-display" id="energyDisplay">ЭНЕРГИЯ: 0 / 100</div>
+                 <div class="resource-display" id="efficiencyDisplay">ЭФФЕКТИВНОСТЬ: 50%</div>
+                 <div class="resource-display" id="stabilityDisplay">СТАБИЛЬНОСТЬ: 100%</div>
+                 <div class="player-stats">
+                    <div id="life-container"></div>
+                    <button class="action-button" id="inventoryBtn">ИНВЕНТАРЬ</button>
+                </div>
             </div>
             <div class="upgrade-panel">
-                <button class="upgrade-button" id="upgradeCollector">
-                    Сборщик <span class="level" id="collectorLvl">УР. 1</span>
-                    <span class="cost">Стоимость: 50 Энергии</span>
-                </button>
-                <button class="upgrade-button" id="upgradePurifier">
-                    Очиститель <span class="level" id="purifierLvl">УР. 1</span>
-                    <span class="cost">Стоимость: 75 Энергии</span>
-                </button>
-                 <button class="upgrade-button" id="upgradeStorage">
-                    Хранилище <span class="level" id="storageLvl">УР. 1</span>
-                    <span class="cost">Стоимость: 100 Энергии</span>
-                </button>
-                <button class="upgrade-button" id="upgradeCooler">
-                    Охладитель <span class="level" id="coolerLvl">УР. 1</span>
-                    <span class="cost">Стоимость: 150 Энергии</span>
-                </button>
+                <button class="upgrade-button" id="upgradeCollector">Сборщик <span class="level" id="collectorLvl">УР. 1</span><span class="cost">Стоимость: 50</span></button>
+                <button class="upgrade-button" id="upgradePurifier">Очиститель <span class="level" id="purifierLvl">УР. 1</span><span class="cost">Стоимость: 75</span></button>
+                <button class="upgrade-button" id="upgradeStorage">Хранилище <span class="level" id="storageLvl">УР. 1</span><span class="cost">Стоимость: 100</span></button>
+                <button class="upgrade-button" id="upgradeCooler">Охладитель <span class="level" id="coolerLvl">УР. 1</span><span class="cost">Стоимость: 150</span></button>
+            </div>
+        </div>
+        <div id="mine-hud">
+            <div class="tool-display">
+                <div id="active-tool-slot" class="inventory-slot">
+                    <canvas width="40" height="40"></canvas>
+                </div>
+                <div id="tool-durability"></div>
+            </div>
+            <div class="mine-hud-stats">
+                 <div id="mine-life-container" style="font-size: 24px; color: #ff4757; letter-spacing: 2px;"></div>
+                 <button class="action-button" id="mineInventoryBtn">ИНВЕНТАРЬ</button>
             </div>
         </div>
     </div>
     
-    <!-- Modals -->
-    <div class="modal-overlay" id="genericModal"><div class="modal-content"><h2 id="modalTitle"></h2><p id="modalText"></p><button id="modalButton" class="modal-button">Продолжить</button></div></div>
+    <div class="modal-overlay" id="genericModal"><div class="modal-content"><h2 id="modalTitle"></h2><p id="modalText"></p><div id="modalLootContainer" style="display: flex; flex-direction: column; gap: 15px; align-items: center; margin-top: 20px;"></div><button id="modalButton" class="modal-button">Продолжить</button></div></div>
     <div class="modal-overlay" id="inventoryModal"><div class="modal-content"><h2>Инвентарь</h2><div id="inventoryGrid"></div><button id="closeInventoryBtn" class="modal-button">Закрыть</button></div></div>
-    <div class="modal-overlay" id="lootModal"><div class="modal-content"><h2>Добыча</h2><div id="lootContainer"></div><button id="closeLootBtn" class="modal-button">Забрать</button></div></div>
-
+    <div class="modal-overlay" id="lootModal"><div class="modal-content"><h2 id="modalTitle">Добыча</h2><div id="lootContainer"></div><button id="closeLootBtn" class="modal-button">Забрать</button></div></div>
+    
+    <div id="touch-controls">
+        <div class="d-pad">
+            <button id="touch-up" class="touch-btn">▲</button>
+            <button id="touch-left" class="touch-btn">◀</button>
+            <button id="touch-right" class="touch-btn">▶</button>
+            <button id="touch-down" class="touch-btn">▼</button>
+        </div>
+        <div class="action-pad"><button id="touch-interact" class="touch-btn">A</button></div>
+    </div>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         ctx.imageSmoothingEnabled = false;
 
-        // --- ITEM DEFINITIONS ---
         const ITEMS = {
-            'common_pickaxe': { name: 'Обычная кирка' },
-            'rare_pickaxe': { name: 'Редкая кирка' },
-            'white_crystal': { name: 'Белый кристалл' },
+            'wooden_pickaxe': { name: 'Деревянная кирка', type: 'tool', maxDurability: 30, power: 1 },
+            'metal_pickaxe': { name: 'Металлическая кирка', type: 'tool', maxDurability: 60, power: 2 },
+            'energy_pickaxe': { name: 'Энерго-кирка', type: 'tool', maxDurability: 100, power: 3 },
+            'white_crystal': { name: 'Белый кристалл', type: 'resource' },
+            'note': { name: 'Записка', type: 'quest' },
+        };
+        const STONE_BLOCK_ID = 1;
+        const WOOD_BLOCK_ID = 2;
+        const BLOCK_HEALTH = {
+            [STONE_BLOCK_ID]: 9999, // Essentially indestructible
+            [WOOD_BLOCK_ID]: 3
         };
 
-        // Game Constants & State...
         const TILE_SIZE = 40;
         const MINE_COLS = canvas.width / TILE_SIZE;
         const MINE_ROWS = Math.floor(canvas.height / TILE_SIZE);
         const GRAVITY = 0.5;
         const JUMP_STRENGTH = -11;
         const GROUND_LEVEL = 350;
+        const INVINCIBILITY_DURATION = 120;
 
         const gameState = {
-            currentLocation: 'surface', // 'surface' or 'mine'
+            currentLocation: 'surface',
             pureEnergy: 0,
-            inventory: {},
+            inventory: [],
             storage: { level: 1, capacity: 100 },
             collector: { level: 1, rate: 0.1 },
             purifier: { level: 1, efficiency: 0.5 },
             cooler: { level: 1, stability: 1.0 },
-            player: { x: 450, y: GROUND_LEVEL - 32, width: 16, height: 32, speed: 3, dx: 0, dy: 0, vy: 0, isGrounded: true, canInteract: false, interactionTarget: null },
-            mine: { grid: null, chest: { x: 0, y: 0, isOpen: false }, exit: { x: TILE_SIZE, y: TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE * 2 } },
-            surface: { mineEntrance: { x: 720, y: GROUND_LEVEL - 80, width: 60, height: 80 } },
-            time: 0, dayNightCycle: 0, eventFlags: { firstLight: false, mysticNight: false, firstFailure: false, },
-            isMalfunctioning: false, malfunctionTimer: 0,
+            player: { x: 450, y: GROUND_LEVEL - 32, width: 16, height: 32, speed: 3, dx: 0, dy: 0, vy: 0, isGrounded: true, canInteract: false, interactionTarget: null, lives: 3, isInvincible: false, invincibilityTimer: 0, activeToolIndex: -1, lastDx: 1, lastDy: 0 },
+            mine: { grid: null, damagedBlocks: {}, chest: { x: 0, y: 0, isOpen: false }, exit: { x: TILE_SIZE, y: TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE * 2 }, ghosts: [], ghostSpawnTimer: 0 },
+            surface: { 
+                mineEntrance: { x: 720, y: GROUND_LEVEL - 80, width: 60, height: 80 },
+                startingChest: { x: 650, y: GROUND_LEVEL - TILE_SIZE, isOpen: false }
+            },
+            time: 0,
+            dayNightCycle: 0
         };
         
-        // --- ITEM DRAWING FUNCTION ---
-        function drawItem(ctx, itemId, x, y, size) {
-            ctx.clearRect(x, y, size, size);
-            ctx.save();
-            ctx.translate(x, y);
-            const s = size / 40; // Scale factor
-            if (itemId === 'common_pickaxe') {
-                ctx.fillStyle = '#6c757d'; ctx.fillRect(18*s, 5*s, 4*s, 30*s); // Handle
-                ctx.fillStyle = '#adb5bd'; ctx.fillRect(10*s, 5*s, 20*s, 8*s); // Head
-            } else if (itemId === 'rare_pickaxe') {
-                ctx.fillStyle = '#6c757d'; ctx.fillRect(18*s, 5*s, 4*s, 30*s);
-                ctx.fillStyle = '#ffd700'; ctx.fillRect(10*s, 5*s, 20*s, 8*s); // Gold head
-            } else if (itemId === 'white_crystal') {
-                ctx.fillStyle = '#e0e0e0';
-                ctx.beginPath();
-                ctx.moveTo(20*s, 5*s); ctx.lineTo(35*s, 20*s); ctx.lineTo(20*s, 35*s); ctx.lineTo(5*s, 20*s);
-                ctx.closePath(); ctx.fill();
-            }
-            ctx.restore();
-        }
-
         const upgradeCosts = {
             collector: (level) => Math.ceil(50 * Math.pow(1.8, level - 1)),
             purifier: (level) => Math.ceil(75 * Math.pow(2, level - 1)),
             storage: (level) => Math.ceil(100 * Math.pow(2.2, level - 1)),
             cooler: (level) => Math.ceil(150 * Math.pow(2.5, level - 1)),
         };
+        
+        function drawItem(ctx, itemId, x, y, size) {
+             ctx.clearRect(x, y, size, size); ctx.save(); ctx.translate(x, y);
+            const s = size / 40;
+            const itemInfo = itemId.split('_');
+            const itemType = itemInfo[0];
+
+            if (itemInfo[1] === 'pickaxe') {
+                 ctx.fillStyle = '#6c757d';
+                 ctx.fillRect(18*s, 5*s, 4*s, 30*s);
+                 if (itemType === 'wooden') ctx.fillStyle = '#8B4513';
+                 else if (itemType === 'metal') ctx.fillStyle = '#adb5bd';
+                 else if (itemType === 'energy') ctx.fillStyle = '#00ffff';
+                 ctx.fillRect(10*s, 5*s, 20*s, 8*s);
+            } else if (itemId === 'white_crystal') {
+                 ctx.fillStyle = '#e0e0e0'; ctx.beginPath();
+                 ctx.moveTo(20*s, 5*s); ctx.lineTo(35*s, 20*s); ctx.lineTo(20*s, 35*s); ctx.lineTo(5*s, 20*s);
+                 ctx.closePath(); ctx.fill();
+            } else if (itemId === 'note') {
+                ctx.fillStyle = '#f0e68c';
+                ctx.fillRect(10*s, 5*s, 20*s, 30*s);
+                ctx.fillStyle = '#d2b48c'; 
+                ctx.fillRect(12*s, 7*s, 16*s, 26*s);
+            }
+             ctx.restore();
+        }
 
         const keys = { left: { pressed: false }, right: { pressed: false }, up: { pressed: false }, down: { pressed: false } };
         
-        window.addEventListener('keydown', (event) => {
-            switch (event.key.toLowerCase()) {
-                case 'a': case 'arrowleft': case 'ф': keys.left.pressed = true; break;
-                case 'd': case 'arrowright': case 'в': keys.right.pressed = true; break;
-                case 'w': case 'arrowup': case 'ц': keys.up.pressed = true; break;
-                case 's': case 'arrowdown': case 'ы': keys.down.pressed = true; break;
+        window.addEventListener('keydown', (e) => {
+            switch (e.key.toLowerCase()) {
+                case 'a': case 'arrowleft': keys.left.pressed = true; break;
+                case 'd': case 'arrowright': keys.right.pressed = true; break;
+                case 'w': case 'arrowup': keys.up.pressed = true; break;
+                case 's': case 'arrowdown': keys.down.pressed = true; break;
                 case 'enter': handleInteraction(); break;
             }
         });
-        window.addEventListener('keyup', (event) => {
-             switch (event.key.toLowerCase()) {
-                case 'a': case 'arrowleft': case 'ф': keys.left.pressed = false; break;
-                case 'd': case 'arrowright': case 'в': keys.right.pressed = false; break;
-                case 'w': case 'arrowup': case 'ц': keys.up.pressed = false; break;
-                case 's': case 'arrowdown': case 'ы': keys.down.pressed = false; break;
+        window.addEventListener('keyup', (e) => {
+             switch (e.key.toLowerCase()) {
+                case 'a': case 'arrowleft': keys.left.pressed = false; break;
+                case 'd': case 'arrowright': keys.right.pressed = false; break;
+                case 'w': case 'arrowup': keys.up.pressed = false; break;
+                case 's': case 'arrowdown': keys.down.pressed = false; break;
             }
         });
 
+        function handleInteraction() {
+            const p = gameState.player;
+            if (p.canInteract && p.interactionTarget) {
+                 switch(p.interactionTarget.type) {
+                    case 'mineEntrance': changeLocation('mine'); break;
+                    case 'mineExit': changeLocation('surface'); break;
+                    case 'chest': openChest(); break;
+                    case 'startingChest': openStartingChest(); break;
+                 }
+            } else if (gameState.currentLocation === 'mine') {
+                mineBlock();
+            }
+        }
+
+        function changeLocation(location) {
+            gameState.currentLocation = location;
+            const p = gameState.player;
+            if (location === 'mine') {
+                gameState.mine.grid = generateMaze(MINE_COLS, MINE_ROWS);
+                gameState.mine.damagedBlocks = {};
+                gameState.mine.chest.isOpen = false;
+                gameState.mine.ghosts = [];
+                p.x = gameState.mine.exit.x; p.y = gameState.mine.exit.y;
+                updateActiveToolUI();
+            } else {
+                 p.x = gameState.surface.mineEntrance.x; p.y = GROUND_LEVEL - p.height;
+            }
+        }
+        
+        function mineBlock() {
+            const p = gameState.player;
+            if (p.activeToolIndex === -1) return;
+            const tool = gameState.inventory[p.activeToolIndex];
+            if (!tool || ITEMS[tool.id].type !== 'tool') return;
+
+            const facingTile = getFacingTile();
+            if (!facingTile) return;
+
+            const blockId = gameState.mine.grid[facingTile.y][facingTile.x];
+            
+            if (blockId === STONE_BLOCK_ID) return; 
+
+            if (blockId === WOOD_BLOCK_ID) {
+                if (tool.id !== 'wooden_pickaxe') return; 
+
+                const tileKey = `${facingTile.x},${facingTile.y}`;
+                let currentDamage = gameState.mine.damagedBlocks[tileKey] || 0;
+                currentDamage += ITEMS[tool.id].power;
+                tool.durability--;
+                if (currentDamage >= BLOCK_HEALTH[WOOD_BLOCK_ID]) {
+                    gameState.mine.grid[facingTile.y][facingTile.x] = 0;
+                    delete gameState.mine.damagedBlocks[tileKey];
+                } else {
+                    gameState.mine.damagedBlocks[tileKey] = currentDamage;
+                }
+                if (tool.durability <= 0) {
+                    gameState.inventory.splice(p.activeToolIndex, 1);
+                    p.activeToolIndex = -1;
+                }
+                updateActiveToolUI();
+            }
+        }
+
+        function getFacingTile() {
+            const p = gameState.player;
+            const pTileX = Math.floor((p.x + p.width / 2) / TILE_SIZE);
+            const pTileY = Math.floor((p.y + p.height / 2) / TILE_SIZE);
+            const targetX = pTileX + p.lastDx;
+            const targetY = pTileY + p.lastDy;
+            if (targetX >= 0 && targetX < MINE_COLS && targetY >= 0 && targetY < MINE_ROWS) {
+                return { x: targetX, y: targetY };
+            }
+            return null;
+        }
+
+        const uiPanel = document.querySelector('.ui-panel');
+        const mineHud = document.getElementById('mine-hud');
+        function gameLoop() {
+            gameState.time++;
+            if (gameState.currentLocation === 'surface') {
+                updateSurface(); 
+                drawSurface(); 
+                uiPanel.style.display = 'grid';
+                mineHud.classList.remove('visible');
+            } else { 
+                updateMine(); 
+                drawMine();
+                drawGhosts();
+                uiPanel.style.display = 'none';
+                mineHud.classList.add('visible');
+            }
+            drawPlayer();
+            drawInteractionPrompt();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function updateActiveToolUI() {
+            const p = gameState.player;
+            const slot = document.getElementById('active-tool-slot');
+            const durabilityText = document.getElementById('tool-durability');
+            const canvas = slot.querySelector('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            let countDiv = slot.querySelector('.item-count');
+            if (!countDiv) {
+                countDiv = document.createElement('div');
+                countDiv.className = 'item-count';
+                slot.appendChild(countDiv);
+            }
+
+            if (p.activeToolIndex !== -1 && gameState.inventory[p.activeToolIndex]) {
+                const activeTool = gameState.inventory[p.activeToolIndex];
+                
+                const toolCount = gameState.inventory.filter(item => item.id === activeTool.id).length;
+
+                drawItem(ctx, activeTool.id, 0, 0, 40);
+                countDiv.textContent = `x${toolCount}`;
+                countDiv.style.display = 'block';
+                
+                durabilityText.textContent = `${activeTool.durability}/${ITEMS[activeTool.id].maxDurability}`;
+            } else {
+                ctx.clearRect(0, 0, 40, 40);
+                durabilityText.textContent = '';
+                countDiv.style.display = 'none';
+            }
+        }
+        
         function generateMaze(cols, rows) {
-            let grid = Array(rows).fill(null).map(() => Array(cols).fill(1)); // 1 = wall
+            let grid = Array(rows).fill(null).map(() => Array(cols).fill(STONE_BLOCK_ID));
             let stack = [];
             let startX = 1, startY = 1;
-            
-            grid[startY][startX] = 0; // 0 = path
+            grid[startY][startX] = 0; 
             stack.push([startX, startY]);
-
             let farthest = {x: startX, y: startY, dist: 0};
-
             while (stack.length > 0) {
                 let [cx, cy] = stack[stack.length - 1];
                 let neighbors = [];
-                
                 [[0, -2], [2, 0], [0, 2], [-2, 0]].forEach(([dx, dy]) => {
                     let nx = cx + dx, ny = cy + dy;
-                    if (nx > 0 && nx < cols - 1 && ny > 0 && ny < rows - 1 && grid[ny][nx] === 1) {
+                    if (nx > 0 && nx < cols - 1 && ny > 0 && ny < rows - 1 && grid[ny][nx] === STONE_BLOCK_ID) {
                         neighbors.push([nx, ny]);
                     }
                 });
-
                 if (neighbors.length > 0) {
                     let [nx, ny] = neighbors[Math.floor(Math.random() * neighbors.length)];
                     grid[ny][nx] = 0;
@@ -342,299 +493,181 @@
             grid[1][0] = 0;
             gameState.mine.chest.x = farthest.x;
             gameState.mine.chest.y = farthest.y;
+
+            for (let i = 0; i < (cols * rows) / 10; i++) {
+                const x = 1 + Math.floor(Math.random() * (cols - 2));
+                const y = 1 + Math.floor(Math.random() * (rows - 2));
+                if (grid[y][x] === STONE_BLOCK_ID && (x !== farthest.x || y !== farthest.y)) {
+                    grid[y][x] = WOOD_BLOCK_ID;
+                }
+            }
+            
             return grid;
         }
+
+        function drawSurface() { ctx.clearRect(0,0,800,450); drawSky(gameState.dayNightCycle); drawLandscape(); drawStartingChest(); drawCrystals(); drawStation(); }
+        function updateSurface() { 
+            gameState.dayNightCycle += 0.0005; 
+            if(gameState.pureEnergy < gameState.storage.capacity) {
+                gameState.pureEnergy += gameState.collector.rate * gameState.purifier.efficiency;
+            }
+            handlePlayerMovement(); 
+            applyPhysics(); 
+            checkInteractionZones(); 
+            updateUI();
+        }
+        function drawMine() { ctx.clearRect(0,0,800,450); ctx.fillStyle = '#2d2d2d'; ctx.fillRect(0, 0, canvas.width, canvas.height); const grid = gameState.mine.grid; if (!grid) return; for (let y = 0; y < MINE_ROWS; y++) { for (let x = 0; x < MINE_COLS; x++) { if (grid[y][x] === STONE_BLOCK_ID) { ctx.fillStyle = '#6c757d'; ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE); } else if (grid[y][x] === WOOD_BLOCK_ID) { ctx.fillStyle = '#8B4513'; ctx.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE); } const damage = gameState.mine.damagedBlocks[`${x},${y}`]; if (damage) { ctx.fillStyle = `rgba(0,0,0,${0.2 * damage})`; ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE); } } } const chest = gameState.mine.chest; const chestX = chest.x * TILE_SIZE; const chestY = chest.y * TILE_SIZE; ctx.fillStyle = '#8B4513'; ctx.fillRect(chestX + 5, chestY + 15, TILE_SIZE - 10, TILE_SIZE - 20); ctx.fillStyle = '#FFD700'; if (chest.isOpen) { ctx.fillRect(chestX + 3, chestY + 5, TILE_SIZE - 6, 8); }  else { ctx.fillRect(chestX + 5, chestY + 10, TILE_SIZE - 10, 5); } const exit = gameState.mine.exit; ctx.fillStyle = '#212529'; ctx.beginPath(); ctx.moveTo(exit.x, exit.y + exit.height); ctx.quadraticCurveTo(exit.x + exit.width / 2, exit.y - 20, exit.x + exit.width, exit.y + exit.height); ctx.closePath(); ctx.fill(); }
         
-        const skyTopColorDay = '#8cb0f0', skyBottomColorDay = '#d6e5ff';
-        const skyTopColorNight = '#0c1445', skyBottomColorNight = '#3a53a1';
-        
-        function drawSky(daylight) {
-            const topColor = lerpColor(parseInt(skyTopColorNight.slice(1), 16), parseInt(skyTopColorDay.slice(1), 16), daylight);
-            const bottomColor = lerpColor(parseInt(skyBottomColorNight.slice(1), 16), parseInt(skyBottomColorDay.slice(1), 16), daylight);
-            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            gradient.addColorStop(0, topColor);
-            gradient.addColorStop(1, bottomColor);
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        function findPath(grid, start, end) {
+            const queue = [[start]];
+            const visited = new Set([`${start.x},${start.y}`]);
+            while (queue.length > 0) {
+                const path = queue.shift();
+                const {x, y} = path[path.length - 1];
+                if (x === end.x && y === end.y) return path;
+                [[0,-1], [1,0], [0,1], [-1,0]].forEach(([dx, dy]) => {
+                    const nx = x + dx, ny = y + dy;
+                    if (nx >= 0 && nx < MINE_COLS && ny >= 0 && ny < MINE_ROWS && grid[ny][nx] === 0 && !visited.has(`${nx},${ny}`)) {
+                        visited.add(`${nx},${ny}`);
+                        const newPath = [...path, {x: nx, y: ny}];
+                        queue.push(newPath);
+                    }
+                });
+            }
+            return null;
         }
 
-        function drawLandscape() {
-            ctx.fillStyle = '#343a40';
-            ctx.beginPath();
-            ctx.moveTo(0, GROUND_LEVEL); ctx.lineTo(100, 200); ctx.lineTo(250, 320);
-            ctx.lineTo(500, GROUND_LEVEL); ctx.closePath(); ctx.fill();
+        function updateMine() { 
+            handlePlayerMovement(); 
+            applyPhysics(); 
+            checkInteractionZones(); 
+            updateUI();
             
-            ctx.fillStyle = '#5a823b';
-            ctx.fillRect(0, GROUND_LEVEL, canvas.width, canvas.height - GROUND_LEVEL);
-
-            const arch = gameState.surface.mineEntrance;
-            ctx.fillStyle = '#495057';
-            ctx.beginPath();
-            ctx.moveTo(650, GROUND_LEVEL); ctx.lineTo(700, 200); ctx.lineTo(800, 250);
-            ctx.lineTo(800, GROUND_LEVEL); ctx.closePath(); ctx.fill();
-
-            ctx.fillStyle = '#212529';
-            ctx.beginPath();
-            ctx.moveTo(arch.x, arch.y + arch.height);
-            ctx.quadraticCurveTo(arch.x + arch.width / 2, arch.y - 20, arch.x + arch.width, arch.y + arch.height);
-            ctx.closePath(); ctx.fill();
-
-            ctx.fillStyle = '#2d1e14';
-            ctx.beginPath();
-            ctx.ellipse(250, GROUND_LEVEL + 30, 150, 40, 0, 0, 2 * Math.PI);
-            ctx.fill();
-        }
-
-        function drawCrystals() {
-            const crystalColors = ['#9d4edd', '#5a189a', '#00b4d8', '#48cae4', '#2dc653'];
-            const pitCenterX = 250; const pitCenterY = GROUND_LEVEL + 30;
-            for (let i = 0; i < 15; i++) {
-                const angle = (i * 24) * Math.PI / 180;
-                const radius = 20 + (i % 5) * 20 + Math.sin(angle + gameState.time / 20) * 5;
-                const x = pitCenterX + Math.cos(angle) * radius;
-                const y = pitCenterY + Math.sin(angle) * radius * 0.2;
-                const height = 30 + (i % 3) * 15 + Math.sin(gameState.time / 15 + i) * 10;
-                const width = 10 + (i % 2) * 5;
-                ctx.fillStyle = crystalColors[i % crystalColors.length];
-                ctx.beginPath();
-                ctx.moveTo(x - width/2, y); ctx.lineTo(x + width/2, y); ctx.lineTo(x, y - height);
-                ctx.closePath(); ctx.fill();
+            if(gameState.player.isInvincible) {
+                gameState.player.invincibilityTimer--;
+                if(gameState.player.invincibilityTimer <= 0) gameState.player.isInvincible = false;
             }
-        }
-        
-        function drawPlayer() {
-            const p = gameState.player;
-            const bobbing = !p.isGrounded ? 0 : Math.sin(gameState.time / 5) * 1;
-            ctx.fillStyle = '#a0522d'; ctx.fillRect(p.x, p.y + bobbing, 16, 12); // Body
-            ctx.fillStyle = '#2c3e50'; // Legs
-            if (keys.left.pressed || keys.right.pressed) {
-                const legOffset = Math.sin(gameState.time / 4) * 3;
-                ctx.fillRect(p.x + 2, p.y + 12, 4, 8 - legOffset);
-                ctx.fillRect(p.x + 10, p.y + 12, 4, 8 + legOffset);
-            } else {
-                 ctx.fillRect(p.x + 2, p.y + 12, 4, 8); ctx.fillRect(p.x + 10, p.y + 12, 4, 8);
-            }
-            ctx.fillStyle = '#f0d9b5'; ctx.fillRect(p.x + 4, p.y - 8 + bobbing, 8, 8); // Head
-            ctx.fillStyle = '#6c757d'; ctx.fillRect(p.x + 2, p.y - 12 + bobbing, 12, 4); // Hat
-            ctx.fillStyle = 'yellow'; ctx.fillRect(p.x + 7, p.y - 11 + bobbing, 2, 2); // Light
-        }
 
-        function drawStation() {
-            const baseX = 550; const baseY = GROUND_LEVEL;
-            ctx.strokeStyle = '#4a4a4a'; ctx.lineWidth = 8;
-            ctx.beginPath();
-            ctx.moveTo(baseX - 50, baseY); ctx.lineTo(baseX - 50, baseY - 150);
-            ctx.lineTo(baseX + 50, baseY - 150); ctx.lineTo(baseX + 50, baseY);
-            ctx.moveTo(baseX - 80, baseY-100); ctx.lineTo(baseX - 50, baseY-100);
-            ctx.stroke();
-
-            ctx.strokeStyle = '#6c757d'; ctx.lineWidth = 6;
-            ctx.beginPath();
-            ctx.moveTo(350, GROUND_LEVEL + 10); ctx.lineTo(480, GROUND_LEVEL + 10);
-            ctx.lineTo(480, baseY - 80); ctx.lineTo(baseX - 50, baseY-80);
-            ctx.stroke();
-
-            ctx.fillStyle = 'rgba(173, 216, 230, 0.3)'; ctx.strokeStyle = '#adb5bd'; ctx.lineWidth = 4;
-            ctx.beginPath(); ctx.roundRect(baseX - 40, baseY - 140, 80, 100, [10]);
-            ctx.stroke(); ctx.fill();
-
-            const energyHeight = (gameState.pureEnergy / gameState.storage.capacity) * 90;
-            ctx.fillStyle = `rgba(0, 255, 255, ${0.5 + Math.sin(gameState.time/10) * 0.1})`;
-            ctx.fillRect(baseX - 35, baseY - 45 - energyHeight + 5, 70, energyHeight);
-        }
-
-        function drawInteractionPrompt() {
-            if (gameState.player.canInteract) {
-                ctx.font = "12px 'Press Start 2P'";
-                ctx.fillStyle = "white";
-                ctx.textAlign = "center";
-                let text = "ВЗАИМОДЕЙСТВОВАТЬ";
-                let targetRect;
-
-                switch(gameState.player.interactionTarget) {
-                    case 'mineEntrance': text = "ВОЙТИ"; targetRect = gameState.surface.mineEntrance; break;
-                    case 'mineExit': text = "ВЫХОД"; targetRect = gameState.mine.exit; break;
-                    case 'chest': text = "ОТКРЫТЬ"; targetRect = { x: gameState.mine.chest.x * TILE_SIZE, y: gameState.mine.chest.y * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE }; break;
-                }
-                if (targetRect) {
-                     ctx.fillText(text, targetRect.x + targetRect.width / 2, targetRect.y - 10);
-                }
-            }
-        }
-        
-        function drawMine() {
-            ctx.fillStyle = '#2d2d2d'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            const grid = gameState.mine.grid; if (!grid) return;
-            for (let y = 0; y < MINE_ROWS; y++) { for (let x = 0; x < MINE_COLS; x++) { if (grid[y][x] === 1) { ctx.fillStyle = '#6c757d'; ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE); } } }
-            
-            const chest = gameState.mine.chest;
-            const chestX = chest.x * TILE_SIZE; const chestY = chest.y * TILE_SIZE;
-            ctx.fillStyle = '#8B4513'; ctx.fillRect(chestX + 5, chestY + 15, TILE_SIZE - 10, TILE_SIZE - 20); // Box
-            ctx.fillStyle = '#FFD700';
-            if (chest.isOpen) {
-                 ctx.fillRect(chestX + 3, chestY + 5, TILE_SIZE - 6, 8);
-            } else {
-                 ctx.fillRect(chestX + 5, chestY + 10, TILE_SIZE - 10, 5);
-            }
-            
-            const exit = gameState.mine.exit;
-            ctx.fillStyle = '#212529'; ctx.beginPath(); ctx.moveTo(exit.x, exit.y + exit.height); ctx.quadraticCurveTo(exit.x + exit.width / 2, exit.y - 20, exit.x + exit.width, exit.y + exit.height); ctx.closePath(); ctx.fill();
-        }
-
-        function handlePlayerMovement() {
-            const p = gameState.player;
-            p.dx = 0; p.dy = 0;
-            if (keys.left.pressed) p.dx = -p.speed;
-            if (keys.right.pressed) p.dx = p.speed;
-            if (gameState.currentLocation === 'surface') {
-                if (keys.up.pressed && p.isGrounded) { p.vy = JUMP_STRENGTH; p.isGrounded = false; }
-            } else {
-                if (keys.up.pressed) p.dy = -p.speed;
-                if (keys.down.pressed) p.dy = p.speed;
-                if (p.dx !== 0 && p.dy !== 0) {
-                    const magnitude = Math.sqrt(p.dx * p.dx + p.dy * p.dy);
-                    p.dx = (p.dx / magnitude) * p.speed; p.dy = (p.dy / magnitude) * p.speed;
-                }
-            }
-        }
-
-        function applyPhysics() {
-            const p = gameState.player;
-            if (gameState.currentLocation === 'surface') {
-                p.vy += GRAVITY; p.x += p.dx;
-                let newY = p.y + p.vy;
-                if (newY + p.height >= GROUND_LEVEL) {
-                     newY = GROUND_LEVEL - p.height; p.vy = 0; p.isGrounded = true;
-                } else { p.isGrounded = false; }
-                p.y = newY;
-            } else {
-                p.isGrounded = true; p.vy = 0;
-                let newX = p.x + p.dx; let newY = p.y + p.dy;
-                const grid = gameState.mine.grid;
-                if (!checkWallCollision(newX, newY, p.width, p.height, grid)) {
-                    p.x = newX; p.y = newY;
-                } else {
-                    if (!checkWallCollision(newX, p.y, p.width, p.height, grid)) { p.x = newX; }
-                    if (!checkWallCollision(p.x, newY, p.width, p.height, grid)) { p.y = newY; }
-                }
-            }
-            if (p.x < 0) p.x = 0;
-            if (p.x + p.width > canvas.width) p.x = canvas.width - p.width;
-            if (p.y < 0) p.y = 0;
-            if (p.y + p.height > canvas.height) p.y = canvas.height - p.height;
-        }
-
-        function checkWallCollision(x, y, width, height, grid) {
-            const leftTile = Math.floor(x / TILE_SIZE);
-            const rightTile = Math.floor((x + width) / TILE_SIZE);
-            const topTile = Math.floor(y / TILE_SIZE);
-            const bottomTile = Math.floor((y + height) / TILE_SIZE);
-            if (!grid) return false;
-            for (let row = topTile; row <= bottomTile; row++) {
-                for (let col = leftTile; col <= rightTile; col++) {
-                    if (row < 0 || row >= MINE_ROWS || col < 0 || col >= MINE_COLS || grid[row][col] === 1) {
-                        return true;
+            gameState.mine.ghostSpawnTimer--;
+            if (gameState.mine.ghostSpawnTimer <= 0 && gameState.mine.ghosts.length < 3) {
+                const emptyTiles = [];
+                for(let y = 0; y < MINE_ROWS; y++) for(let x = 0; x < MINE_COLS; x++) if(gameState.mine.grid[y][x] === 0) emptyTiles.push({x, y});
+                if (emptyTiles.length > 1) {
+                    const start = emptyTiles[Math.floor(Math.random() * emptyTiles.length)];
+                    const end = emptyTiles[Math.floor(Math.random() * emptyTiles.length)];
+                    const path = findPath(gameState.mine.grid, start, end);
+                    if (path && path.length > 1) {
+                        gameState.mine.ghosts.push({ x: start.x * TILE_SIZE, y: start.y * TILE_SIZE, path, pathIndex: 0, speed: 1.5, alpha: 0, state: 'spawning' });
                     }
                 }
+                gameState.mine.ghostSpawnTimer = 180 + Math.random() * 120;
             }
-            return false;
-        }
 
-        function checkInteractionZones() {
-            const p = gameState.player;
-            let inZone = false; let target = null;
-            const pRect = { x: p.x, y: p.y, width: p.width, height: p.height };
-            if (gameState.currentLocation === 'surface') {
-                const entrance = gameState.surface.mineEntrance;
-                if (rectsOverlap(pRect, entrance)) { inZone = true; target = 'mineEntrance'; }
-            } else {
-                const exit = gameState.mine.exit;
-                if (rectsOverlap(pRect, exit)) { inZone = true; target = 'mineExit'; }
-                const chest = gameState.mine.chest;
-                const chestRect = { x: chest.x * TILE_SIZE, y: chest.y * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE };
-                if (!chest.isOpen && rectsOverlap(pRect, chestRect)) { inZone = true; target = 'chest'; }
+            gameState.mine.ghosts.forEach((ghost, index) => {
+                if (ghost.state === 'spawning') {
+                    ghost.alpha += 0.02;
+                    if (ghost.alpha >= 1) { ghost.state = 'moving'; ghost.alpha = 1; }
+                } else if (ghost.state === 'moving') {
+                    const targetNode = ghost.path[ghost.pathIndex + 1];
+                    if (!targetNode) { ghost.state = 'fading'; return; }
+                    const targetX = targetNode.x * TILE_SIZE; const targetY = targetNode.y * TILE_SIZE;
+                    const dx = targetX - ghost.x; const dy = targetY - ghost.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist < ghost.speed) {
+                        ghost.pathIndex++;
+                    } else {
+                        ghost.x += (dx / dist) * ghost.speed;
+                        ghost.y += (dy / dist) * ghost.speed;
+                    }
+                } else if (ghost.state === 'fading') {
+                    ghost.alpha -= 0.02;
+                    if (ghost.alpha <= 0) gameState.mine.ghosts.splice(index, 1);
+                }
+            });
+
+            if (!gameState.player.isInvincible) {
+                gameState.mine.ghosts.forEach(ghost => {
+                    const ghostRect = {x: ghost.x, y: ghost.y, width: TILE_SIZE, height: TILE_SIZE};
+                    if (rectsOverlap(gameState.player, ghostRect)) {
+                        gameState.player.lives--;
+                        gameState.player.isInvincible = true;
+                        gameState.player.invincibilityTimer = INVINCIBILITY_DURATION;
+                        if (gameState.player.lives <= 0) {
+                            handlePlayerDeath();
+                        }
+                    }
+                });
             }
-            p.canInteract = inZone; p.interactionTarget = target;
         }
+        function handlePlayerDeath() {
+            gameState.inventory = [];
+            gameState.player.lives = 3;
+            gameState.player.activeToolIndex = -1;
+            changeLocation('surface');
+            showModal("Поражение!", "Вы были побеждены призраками. Ваш инвентарь утерян.");
+        }
+        function handlePlayerMovement() { const p = gameState.player; p.dx = 0; p.dy = 0; if (keys.left.pressed) p.dx = -p.speed; if (keys.right.pressed) p.dx = p.speed; if (p.dx !== 0) p.lastDx = Math.sign(p.dx); if (gameState.currentLocation === 'surface') { if (keys.up.pressed && p.isGrounded) { p.vy = JUMP_STRENGTH; p.isGrounded = false; } } else { if (keys.up.pressed) p.dy = -p.speed; if (keys.down.pressed) p.dy = p.speed; if (p.dy !== 0) p.lastDy = Math.sign(p.dy); if (p.dx !== 0 && p.dy !== 0) { const m = 1/Math.sqrt(2); p.dx *= m; p.dy *= m; } if (p.dx === 0 && p.dy !==0) { p.lastDx = 0; } else if (p.dy === 0 && p.dx !== 0) { p.lastDy = 0; } } }
+        function applyPhysics() { const p = gameState.player; if (gameState.currentLocation === 'surface') { p.vy += GRAVITY; p.x += p.dx; let nY = p.y + p.vy; if (nY + p.height >= GROUND_LEVEL) { nY = GROUND_LEVEL - p.height; p.vy = 0; p.isGrounded = true; } else { p.isGrounded = false; } p.y = nY; } else { p.isGrounded = true; p.vy = 0; let nX = p.x + p.dx; let nY = p.y + p.dy; const grid = gameState.mine.grid; if (!checkWallCollision(nX, nY, p.width, p.height, grid)) { p.x = nX; p.y = nY; } else { if (!checkWallCollision(nX, p.y, p.width, p.height, grid)) { p.x = nX; } if (!checkWallCollision(p.x, nY, p.width, p.height, grid)) { p.y = nY; } } } if (p.x < 0) p.x = 0; if (p.x + p.width > canvas.width) p.x = canvas.width - p.width; if (p.y < 0) p.y = 0; if (p.y + p.height > canvas.height) p.y = canvas.height - p.height; }
+        function checkWallCollision(x,y,w,h,g){if(!g)return!1;const lT=Math.floor(x/TILE_SIZE),rT=Math.floor((x+w)/TILE_SIZE),tT=Math.floor(y/TILE_SIZE),bT=Math.floor((y+h)/TILE_SIZE);for(let row=tT;row<=bT;row++){for(let col=lT;col<=rT;col++){if(row<0||row>=MINE_ROWS||col<0||col>=MINE_COLS||g[row][col]===STONE_BLOCK_ID||g[row][col]===WOOD_BLOCK_ID)return!0}}return!1}
+        function rectsOverlap(r1, r2) { return r1.x < r2.x + r2.width && r1.x + r1.width > r2.x && r1.y < r2.y + r2.height && r1.y + r1.height > r2.y; }
+        function checkInteractionZones() { const p = gameState.player; let inZone = false; let target = null; const pRect = { x: p.x, y: p.y, width: p.width, height: p.height }; if (gameState.currentLocation === 'surface') { const entrance = gameState.surface.mineEntrance; if (rectsOverlap(pRect, entrance)) { inZone = true; target = {type: 'mineEntrance'}; } const sChest = gameState.surface.startingChest; const sChestRect = { x: sChest.x, y: sChest.y, width: TILE_SIZE, height: TILE_SIZE }; if (!sChest.isOpen && rectsOverlap(pRect, sChestRect)) { inZone = true; target = { type: 'startingChest' }; } } else { const exit = gameState.mine.exit; if (rectsOverlap(pRect, exit)) { inZone = true; target = {type: 'mineExit'}; } const chest = gameState.mine.chest; const chestRect = { x: chest.x * TILE_SIZE, y: chest.y * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE }; if (!chest.isOpen && rectsOverlap(pRect, chestRect)) { inZone = true; target = {type: 'chest'}; } } p.canInteract = inZone; p.interactionTarget = target; }
+        function addToInventory(itemId, quantity) { const itemDef = ITEMS[itemId]; if (itemDef.type === 'resource' || itemDef.type === 'quest') { const existing = gameState.inventory.find(i => i.id === itemId); if (existing) { existing.quantity += quantity; } else { gameState.inventory.push({ id: itemId, quantity }); } } else if (itemDef.type === 'tool') { for (let i = 0; i < quantity; i++) { gameState.inventory.push({ id: itemId, durability: itemDef.maxDurability }); } } }
+        function generateLoot() { const loot = []; const roll = Math.random(); if (roll < 0.10) { loot.push({ id: 'metal_pickaxe', quantity: 1 }); } else if (roll < 0.40) { loot.push({ id: 'wooden_pickaxe', quantity: 1 }); } let crystals = 1; if (Math.random() < 0.50) crystals++; if (Math.random() < 0.20) crystals++; if (Math.random() < 0.01) crystals = 10; loot.push({ id: 'white_crystal', quantity: crystals }); return loot; }
+        function openChest() { if (gameState.mine.chest.isOpen) return; gameState.mine.chest.isOpen = true; const loot = generateLoot(); loot.forEach(item => addToInventory(item.id, item.quantity)); showLootScreen(loot); }
+        function openStartingChest() { const chest = gameState.surface.startingChest; if (chest.isOpen) return; chest.isOpen = true; addToInventory('wooden_pickaxe', 1); addToInventory('note', 1); const noteText = "Без кирки в шахту не суйся. Деревянная сгодится, но надолго её не хватит. В сундуках найдёшь получше — береги их, они откроют дорогу к глубинным кристаллам"; const lootForDisplay = [{ id: 'wooden_pickaxe', quantity: 1 }]; showModal("Вы нашли записку!", noteText, null, lootForDisplay); }
+        function drawPlayer() { if (gameState.player.isInvincible && Math.floor(gameState.time / 6) % 2 === 0) return; const p = gameState.player; const bobbing = !p.isGrounded ? 0 : Math.sin(gameState.time / 5) * 1; ctx.fillStyle = '#a0522d'; ctx.fillRect(p.x, p.y + bobbing, 16, 12); ctx.fillStyle = '#2c3e50'; if (keys.left.pressed || keys.right.pressed) { const legOffset = Math.sin(gameState.time / 4) * 3; ctx.fillRect(p.x + 2, p.y + 12, 4, 8 - legOffset); ctx.fillRect(p.x + 10, p.y + 12, 4, 8 + legOffset); } else { ctx.fillRect(p.x + 2, p.y + 12, 4, 8); ctx.fillRect(p.x + 10, p.y + 12, 4, 8); } ctx.fillStyle = '#f0d9b5'; ctx.fillRect(p.x + 4, p.y - 8 + bobbing, 8, 8); ctx.fillStyle = '#6c757d'; ctx.fillRect(p.x + 2, p.y - 12 + bobbing, 12, 4); ctx.fillStyle = 'yellow'; ctx.fillRect(p.x + 7, p.y - 11 + bobbing, 2, 2); }
         
-        function handleInteraction() {
-            const p = gameState.player;
-            if (!p.canInteract) return;
-            switch(p.interactionTarget) {
-                case 'mineEntrance':
-                    gameState.currentLocation = 'mine';
-                    gameState.mine.grid = generateMaze(MINE_COLS, MINE_ROWS);
-                    gameState.mine.chest.isOpen = false;
-                    p.x = gameState.mine.exit.x; // Исправлена позиция спавна
-                    p.y = gameState.mine.exit.y;
-                    break;
-                case 'mineExit':
-                    gameState.currentLocation = 'surface';
-                    p.x = gameState.surface.mineEntrance.x; p.y = GROUND_LEVEL - p.height;
-                    break;
-                case 'chest':
-                    openChest();
-                    break;
-            }
+        function drawGhosts() {
+            gameState.mine.ghosts.forEach(ghost => {
+                ctx.globalAlpha = ghost.alpha;
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(ghost.x + TILE_SIZE / 2, ghost.y + TILE_SIZE / 2, 12, Math.PI, 0);
+                ctx.lineTo(ghost.x + TILE_SIZE, ghost.y + TILE_SIZE);
+                ctx.lineTo(ghost.x, ghost.y + TILE_SIZE);
+                ctx.closePath();
+                ctx.fill();
+                ctx.fillStyle = 'black';
+                ctx.fillRect(ghost.x + 12, ghost.y + 12, 4, 4);
+                ctx.fillRect(ghost.x + 24, ghost.y + 12, 4, 4);
+                ctx.globalAlpha = 1.0;
+            });
         }
-        
-        function openChest() {
-            if (gameState.mine.chest.isOpen) return;
-            gameState.mine.chest.isOpen = true;
-            const loot = generateLoot();
-            loot.forEach(item => addToInventory(item.id, item.quantity));
-            showLootScreen(loot);
-        }
-
-        function generateLoot() {
-            const loot = [];
-            const roll = Math.random();
-            if (roll < 0.10) { loot.push({ id: 'rare_pickaxe', quantity: 1 }); }
-            else if (roll < 0.40) { loot.push({ id: 'common_pickaxe', quantity: 1 }); }
-            let crystals = 1;
-            if (Math.random() < 0.50) crystals++;
-            if (Math.random() < 0.20) crystals++;
-            if (Math.random() < 0.01) crystals = 10;
-            loot.push({ id: 'white_crystal', quantity: crystals });
-            return loot;
-        }
-
-        function addToInventory(itemId, quantity) {
-            if (gameState.inventory[itemId]) {
-                gameState.inventory[itemId] += quantity;
-            } else {
-                gameState.inventory[itemId] = quantity;
-            }
-        }
-
-        function updateUI() {
-            const { pureEnergy, storage, purifier, collector, cooler } = gameState;
-            document.getElementById('energyDisplay').textContent = `ЭНЕРГИЯ: ${Math.floor(pureEnergy)} / ${storage.capacity}`;
-            document.getElementById('efficiencyDisplay').textContent = `ЭФФЕКТИВНОСТЬ: ${Math.round(purifier.efficiency * 100)}%`;
-            document.getElementById('stabilityDisplay').textContent = `СТАБИЛЬНОСТЬ: ${Math.round(cooler.stability * 100)}%`;
-
-            function updateButton(btnId, level, cost) {
-                const btn = document.getElementById(btnId);
-                btn.querySelector('.level').textContent = `УР. ${level}`;
-                btn.querySelector('.cost').textContent = `Стоимость: ${cost} Энергии`;
-                btn.disabled = pureEnergy < cost;
-            }
-            updateButton('upgradeCollector', collector.level, upgradeCosts.collector(collector.level));
-            updateButton('upgradePurifier', purifier.level, upgradeCosts.purifier(purifier.level));
-            updateButton('upgradeStorage', storage.level, upgradeCosts.storage(storage.level));
-            updateButton('upgradeCooler', cooler.level, upgradeCosts.cooler(cooler.level));
+        function drawInteractionPrompt() { if (gameState.player.canInteract && gameState.player.interactionTarget) { ctx.font = "12px 'Press Start 2P'"; ctx.fillStyle = "white"; ctx.textAlign = "center"; let text = "?"; let rect; if (gameState.player.interactionTarget.type === 'mineEntrance') {text="ВОЙТИ"; rect=gameState.surface.mineEntrance} if (gameState.player.interactionTarget.type === 'mineExit') {text="ВЫХОД"; rect=gameState.mine.exit} if (gameState.player.interactionTarget.type === 'chest') {text="ОТКРЫТЬ"; rect={x:gameState.mine.chest.x*TILE_SIZE, y:gameState.mine.chest.y*TILE_SIZE, width:TILE_SIZE, height:TILE_SIZE}} if (gameState.player.interactionTarget.type === 'startingChest') {text="ОТКРЫТЬ"; rect={x:gameState.surface.startingChest.x, y:gameState.surface.startingChest.y, width:TILE_SIZE, height:TILE_SIZE}} if (rect) ctx.fillText(text, rect.x + rect.width / 2, rect.y - 10); } else { const facingTile = getFacingTile(); if (facingTile && gameState.currentLocation === 'mine') { const blockId = gameState.mine.grid[facingTile.y][facingTile.x]; const tool = gameState.player.activeToolIndex !== -1 ? gameState.inventory[gameState.player.activeToolIndex] : null; if (blockId === WOOD_BLOCK_ID && tool && tool.id === 'wooden_pickaxe') { ctx.font = "10px 'Press Start 2P'"; ctx.fillStyle = "white"; ctx.textAlign = "center"; ctx.fillText("УДАРИТЬ", facingTile.x * TILE_SIZE + TILE_SIZE / 2, facingTile.y * TILE_SIZE - 5); } } } }
+        function drawSky(daylight) {const topColor = lerpColor(parseInt('0c1445', 16), parseInt('8cb0f0', 16), (Math.sin(daylight * 2 * Math.PI - Math.PI/2) + 1) / 2); const bottomColor = lerpColor(parseInt('3a53a1', 16), parseInt('d6e5ff', 16), (Math.sin(daylight * 2 * Math.PI - Math.PI/2) + 1) / 2); const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height); gradient.addColorStop(0, topColor); gradient.addColorStop(1, bottomColor); ctx.fillStyle = gradient; ctx.fillRect(0, 0, canvas.width, canvas.height);}
+        function drawLandscape() {ctx.fillStyle = '#343a40'; ctx.beginPath(); ctx.moveTo(0, GROUND_LEVEL); ctx.lineTo(100, 200); ctx.lineTo(250, 320); ctx.lineTo(500, GROUND_LEVEL); ctx.closePath(); ctx.fill(); ctx.fillStyle = '#5a823b'; ctx.fillRect(0, GROUND_LEVEL, canvas.width, canvas.height - GROUND_LEVEL); const arch = gameState.surface.mineEntrance; ctx.fillStyle = '#495057'; ctx.beginPath(); ctx.moveTo(650, GROUND_LEVEL); ctx.lineTo(700, 200); ctx.lineTo(800, 250); ctx.lineTo(800, GROUND_LEVEL); ctx.closePath(); ctx.fill(); ctx.fillStyle = '#212529'; ctx.beginPath(); ctx.moveTo(arch.x, arch.y + arch.height); ctx.quadraticCurveTo(arch.x + arch.width / 2, arch.y - 20, arch.x + arch.width, arch.y + arch.height); ctx.closePath(); ctx.fill(); ctx.fillStyle = '#2d1e14'; ctx.beginPath(); ctx.ellipse(250, GROUND_LEVEL + 30, 150, 40, 0, 0, 2 * Math.PI); ctx.fill(); }
+        function drawCrystals() { const crystalColors = ['#9d4edd', '#5a189a', '#00b4d8', '#48cae4', '#2dc653']; const pitCenterX = 250; const pitCenterY = GROUND_LEVEL + 30; for (let i = 0; i < 15; i++) { const angle = (i * 24) * Math.PI / 180; const radius = 20 + (i % 5) * 20 + Math.sin(angle + gameState.time / 20) * 5; const x = pitCenterX + Math.cos(angle) * radius; const y = pitCenterY + Math.sin(angle) * radius * 0.2; const height = 30 + (i % 3) * 15 + Math.sin(gameState.time / 15 + i) * 10; const width = 10 + (i % 2) * 5; ctx.fillStyle = crystalColors[i % crystalColors.length]; ctx.beginPath(); ctx.moveTo(x - width/2, y); ctx.lineTo(x + width/2, y); ctx.lineTo(x, y - height); ctx.closePath(); ctx.fill(); } }
+        function drawStation() { const baseX = 550; const baseY = GROUND_LEVEL; ctx.strokeStyle = '#4a4a4a'; ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(baseX - 50, baseY); ctx.lineTo(baseX - 50, baseY - 150); ctx.lineTo(baseX + 50, baseY - 150); ctx.lineTo(baseX + 50, baseY); ctx.moveTo(baseX - 80, baseY-100); ctx.lineTo(baseX - 50, baseY-100); ctx.stroke(); ctx.strokeStyle = '#6c757d'; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(350, GROUND_LEVEL + 10); ctx.lineTo(480, GROUND_LEVEL + 10); ctx.lineTo(480, baseY - 80); ctx.lineTo(baseX - 50, baseY-80); ctx.stroke(); ctx.fillStyle = 'rgba(173, 216, 230, 0.3)'; ctx.strokeStyle = '#adb5bd'; ctx.lineWidth = 4; ctx.beginPath(); ctx.roundRect(baseX - 40, baseY - 140, 80, 100, [10]); ctx.stroke(); ctx.fill(); const energyHeight = (gameState.pureEnergy / gameState.storage.capacity) * 90; ctx.fillStyle = `rgba(0, 255, 255, ${0.5 + Math.sin(gameState.time/10) * 0.1})`; ctx.fillRect(baseX - 35, baseY - 45 - energyHeight + 5, 70, energyHeight); }
+        function drawStartingChest() { const chest = gameState.surface.startingChest; const chestX = chest.x; const chestY = chest.y; ctx.fillStyle = '#8B4513'; ctx.fillRect(chestX + 5, chestY + 15, TILE_SIZE - 10, TILE_SIZE - 20); ctx.fillStyle = '#FFD700'; if (chest.isOpen) { ctx.fillRect(chestX + 3, chestY + 5, TILE_SIZE - 6, 8); } else { ctx.fillRect(chestX + 5, chestY + 10, TILE_SIZE - 10, 5); } }
+        function updateUI() { 
+            const playerLives = gameState.player.lives;
+            document.getElementById('life-container').textContent = '❤'.repeat(playerLives); 
+            document.getElementById('mine-life-container').textContent = '❤'.repeat(playerLives); 
+            document.getElementById('energyDisplay').textContent = `ЭНЕРГИЯ: ${Math.floor(gameState.pureEnergy)} / ${gameState.storage.capacity}`; 
+            document.getElementById('efficiencyDisplay').textContent = `ЭФФЕКТИВНОСТЬ: ${Math.round(gameState.purifier.efficiency * 100)}%`;
+            document.getElementById('stabilityDisplay').textContent = `СТАБИЛЬНОСТЬ: ${Math.round(gameState.cooler.stability * 100)}%`;
+            
+            ['Collector', 'Purifier', 'Storage', 'Cooler'].forEach(type => {
+                const btn = document.getElementById(`upgrade${type}`);
+                const state = gameState[type.toLowerCase()];
+                const cost = upgradeCosts[type.toLowerCase()](state.level);
+                btn.querySelector('.level').textContent = `УР. ${state.level}`;
+                btn.querySelector('.cost').textContent = `Стоимость: ${cost}`;
+                btn.disabled = gameState.pureEnergy < cost;
+            });
         }
         
         function handleUpgrade(type) {
-            const cost = upgradeCosts[type](gameState[type].level);
-            if(gameState.pureEnergy >= cost) {
+            const state = gameState[type.toLowerCase()];
+            const cost = upgradeCosts[type.toLowerCase()](state.level);
+            if (gameState.pureEnergy >= cost) {
                 gameState.pureEnergy -= cost;
-                gameState[type].level++;
+                state.level++;
                 switch(type) {
-                    case 'collector': gameState.collector.rate *= 1.4; break;
-                    case 'purifier': gameState.purifier.efficiency = Math.min(0.95, gameState.purifier.efficiency + 0.05); break;
-                    case 'storage': gameState.storage.capacity = Math.floor(gameState.storage.capacity * 1.8); break;
-                    case 'cooler': gameState.cooler.stability = Math.min(1.0, gameState.cooler.stability + 0.05); break;
+                    case 'collector': state.rate *= 1.4; break;
+                    case 'purifier': state.efficiency = Math.min(0.95, state.efficiency + 0.05); break;
+                    case 'storage': state.capacity = Math.floor(state.capacity * 1.8); break;
+                    case 'cooler': state.stability = Math.min(1.0, state.stability + 0.05); break;
                 }
             }
         }
@@ -643,77 +676,72 @@
         document.getElementById('upgradeStorage').onclick = () => handleUpgrade('storage');
         document.getElementById('upgradeCooler').onclick = () => handleUpgrade('cooler');
 
-        function checkEvents() {
-             if (!gameState.eventFlags.firstLight && gameState.pureEnergy > 10) {
-                gameState.eventFlags.firstLight = true;
-                showModal("Первый свет", "С легким гулом аппарат оживает. Поток чистой энергии впервые наполняет накопитель.");
-            }
-        }
-        
-        function updateSurface() {
-            gameState.time++;
-            gameState.dayNightCycle += 0.001;
-            if (!gameState.isMalfunctioning) {
-                const rawEnergy = gameState.collector.rate;
-                const purified = rawEnergy * gameState.purifier.efficiency;
-                if (gameState.pureEnergy < gameState.storage.capacity) {
-                    gameState.pureEnergy = Math.min(gameState.storage.capacity, gameState.pureEnergy + purified);
-                }
-            }
-            handlePlayerMovement(); applyPhysics(); checkInteractionZones(); updateUI(); checkEvents();
-        }
-        
-        function drawSurface() {
-            const daylight = (Math.sin(gameState.dayNightCycle) + 1) / 2;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawSky(daylight); drawLandscape(); drawCrystals(); drawStation(); drawPlayer(); drawInteractionPrompt();
-        }
-        
-        function updateMine() { handlePlayerMovement(); applyPhysics(); checkInteractionZones(); }
-
-        function gameLoop() {
-            if (gameState.currentLocation === 'surface') { updateSurface(); drawSurface(); } 
-            else { updateMine(); ctx.clearRect(0, 0, canvas.width, canvas.height); drawMine(); drawPlayer(); drawInteractionPrompt(); }
-            requestAnimationFrame(gameLoop);
-        }
-
-        // --- UTILS & MODALS ---
-        function rectsOverlap(r1, r2) { return r1.x < r2.x + r2.width && r1.x + r1.width > r2.x && r1.y < r2.y + r2.height && r1.y + r1.height > r2.y; }
-        function lerpColor(a, b, amount) {
-            const ar = a >> 16, ag = a >> 8 & 0xff, ab = a & 0xff, br = b >> 16, bg = b >> 8 & 0xff, bb = b & 0xff,
-                  rr = ar + amount * (br - ar), rg = ag + amount * (bg - ag), rb = ab + amount * (bb - ab);
-            return `#${((1 << 24) + (rr << 16) + (rg << 8) + rb | 0).toString(16).slice(1).split('.')[0]}`;
-        }
-        
+        function lerpColor(a, b, amount) { const ar = a >> 16, ag = a >> 8 & 0xff, ab = a & 0xff, br = b >> 16, bg = b >> 8 & 0xff, bb = b & 0xff, rr = ar + amount * (br - ar), rg = ag + amount * (bg - ag), rb = ab + amount * (bb - ab); return `#${((1 << 24) + (rr << 16) + (rg << 8) + rb | 0).toString(16).slice(1).split('.')[0]}`; }
         const genericModal = document.getElementById('genericModal');
-        function showModal(title, text, callback) {
+        function showModal(title, text, callback, loot = []) {
             genericModal.querySelector('#modalTitle').textContent = title;
             genericModal.querySelector('#modalText').textContent = text;
+            const modalLootContainer = document.getElementById('modalLootContainer');
+            modalLootContainer.innerHTML = '';
+            if(loot.length > 0) {
+                loot.forEach(item => {
+                    const lootItemDiv = document.createElement('div');
+                    lootItemDiv.className = 'loot-item';
+                    const canvas = document.createElement('canvas');
+                    canvas.width = canvas.height = 40;
+                    drawItem(canvas.getContext('2d'), item.id, 0, 0, 40);
+                    const name = document.createElement('span');
+                    name.textContent = `${ITEMS[item.id].name} x${item.quantity}`;
+                    lootItemDiv.appendChild(canvas);
+                    lootItemDiv.appendChild(name);
+                    modalLootContainer.appendChild(lootItemDiv);
+                });
+            }
             genericModal.classList.add('visible');
             const button = genericModal.querySelector('#modalButton');
             button.onclick = () => { genericModal.classList.remove('visible'); if (callback) callback(); };
         }
-        
         const inventoryModal = document.getElementById('inventoryModal');
         const inventoryGrid = document.getElementById('inventoryGrid');
-        document.getElementById('inventoryBtn').onclick = () => {
+        
+        function openInventory() {
             inventoryGrid.innerHTML = '';
-            for (const itemId in gameState.inventory) {
+            gameState.inventory.forEach((item, index) => {
                 const slot = document.createElement('div');
                 slot.className = 'inventory-slot';
+                if (index === gameState.player.activeToolIndex) {
+                    slot.classList.add('active');
+                }
+                slot.dataset.index = index;
                 const canvas = document.createElement('canvas');
                 canvas.width = canvas.height = 40;
-                drawItem(canvas.getContext('2d'), itemId, 0, 0, 40);
+                drawItem(canvas.getContext('2d'), item.id, 0, 0, 40);
                 const count = document.createElement('div');
                 count.className = 'item-count';
-                count.textContent = gameState.inventory[itemId];
+                count.textContent = item.quantity || item.durability;
                 slot.appendChild(canvas); slot.appendChild(count);
                 inventoryGrid.appendChild(slot);
-            }
+            });
             inventoryModal.classList.add('visible');
-        };
-        document.getElementById('closeInventoryBtn').onclick = () => inventoryModal.classList.remove('visible');
+        }
 
+        document.getElementById('inventoryBtn').onclick = openInventory;
+        document.getElementById('mineInventoryBtn').onclick = openInventory;
+
+        inventoryGrid.addEventListener('click', (e) => {
+            const slot = e.target.closest('.inventory-slot');
+            if (slot) {
+                const index = parseInt(slot.dataset.index);
+                const item = gameState.inventory[index];
+                if (item && ITEMS[item.id].type === 'tool') {
+                    gameState.player.activeToolIndex = index;
+                    updateActiveToolUI();
+                    inventoryGrid.querySelector('.active')?.classList.remove('active');
+                    slot.classList.add('active');
+                }
+            }
+        });
+        document.getElementById('closeInventoryBtn').onclick = () => inventoryModal.classList.remove('visible');
         const lootModal = document.getElementById('lootModal');
         const lootContainer = document.getElementById('lootContainer');
         function showLootScreen(loot) {
@@ -733,9 +761,8 @@
         }
         document.getElementById('closeLootBtn').onclick = () => lootModal.classList.remove('visible');
         
-        showModal("На заре мира", "Вы – молодой исследователь... Используйте WASD/Стрелки для движения и W/Вверх для прыжка. ENTER для взаимодействия.", gameLoop);
+        showModal("На заре мира", "Вы – молодой исследователь... Используйте WASD/Стрелки для движения и W/Вверх для прыжка. ENTER для взаимодействия. Будьте осторожны в шахтах, там обитают призраки!", gameLoop);
     </script>
 </body>
 </html>
-
 
