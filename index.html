@@ -155,12 +155,15 @@
             font-family: var(--font-pixel); font-size: 10px; cursor: pointer; border-radius: 5px; text-align: center;
         }
         .action-button:hover { background-color: var(--button-hover-bg); }
+        .action-button:disabled { cursor: not-allowed; background-color: var(--button-disabled-bg); }
 
         .upgrade-button {
             background-color: var(--button-bg); border: 2px solid var(--border-color); color: var(--text-color);
             padding: 10px; font-family: var(--font-pixel); font-size: 10px; cursor: pointer;
             transition: background-color 0.2s; border-radius: 5px; text-align: left;
         }
+        .upgrade-button:hover { background-color: var(--button-hover-bg); }
+        .upgrade-button:disabled { cursor: not-allowed; background-color: var(--button-disabled-bg); }
         
         .cost { display: block; font-size: 8px; color: #94a3b8; margin-top: 5px; }
         .level { float: right; }
@@ -362,15 +365,17 @@
         <button class="nav-btn" data-view="quests-view"><div class="nav-icon"></div>Задания</button>
     </div>
     
-    <div class="modal-overlay" id="genericModal"><div class="modal-content"><h2 id="modalTitle"></h2><p id="modalText"></p><div id="modalLootContainer" style="display: flex; flex-direction: column; gap: 15px; align-items: center; margin-top: 20px;"></div><button id="modalButton" class="modal-button">Продолжить</button></div></div>
-    <div class="modal-overlay" id="inventoryModal"><div class="modal-content"><h2>Инвентарь</h2><div id="inventoryGrid"></div><button id="closeInventoryBtn" class="modal-button">Закрыть</button></div></div>
-    <div class="modal-overlay" id="lootModal"><div class="modal-content"><h2 id="modalTitle">Добыча</h2><div id="lootContainer"></div><button id="closeLootBtn" class="modal-button">Забрать</button></div></div>
+    <div class="modal-overlay" id="genericModal"><div class="modal-content"><h2 id="modalTitle"></h2><p id="modalText"></p><div id="modalLootContainer" style="display: flex; flex-direction: column; gap: 15px; align-items: center; margin-top: 20px;"></div><button id="modalButton" class="action-button">Продолжить</button></div></div>
+    <div class="modal-overlay" id="inventoryModal"><div class="modal-content"><h2>Инвентарь</h2><div id="inventoryGrid"></div><button id="closeInventoryBtn" class="action-button">Закрыть</button></div></div>
+    <div class="modal-overlay" id="lootModal"><div class="modal-content"><h2 id="modalTitle">Добыча</h2><div id="lootContainer"></div><button id="closeLootBtn" class="action-button">Забрать</button></div></div>
 
     <script>
+        // Game canvas and context
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         ctx.imageSmoothingEnabled = false;
 
+        // Constants for game items and blocks
         const ITEMS = {
             'wooden_pickaxe': { name: 'Деревянная кирка', type: 'tool', maxDurability: 30, power: 1 },
             'metal_pickaxe': { name: 'Металлическая кирка', type: 'tool', maxDurability: 60, power: 2 },
@@ -385,6 +390,7 @@
             [WOOD_BLOCK_ID]: 3
         };
 
+        // Game parameters
         const TILE_SIZE = 40;
         const MINE_COLS = canvas.width / TILE_SIZE;
         const MINE_ROWS = Math.floor(canvas.height / TILE_SIZE);
@@ -394,6 +400,15 @@
         const INVINCIBILITY_DURATION = 120;
         const SAVE_KEY = 'spectralHarvesterSave';
 
+        // Base speeds for different screen sizes
+        const BASE_PLAYER_SPEED = 3;
+        let BASE_GHOST_SPEED = 1.0;
+        
+        // Ghost spawn rates (in frames)
+        const GHOST_SPAWN_MIN = 360;
+        const GHOST_SPAWN_MAX = 240;
+
+        // Game state object
         const gameState = {
             currentLocation: 'surface',
             pureEnergy: 0,
@@ -402,7 +417,7 @@
             collector: { level: 1, rate: 0.1 },
             purifier: { level: 1, efficiency: 0.5 },
             cooler: { level: 1, stability: 1.0 },
-            player: { x: 450, y: GROUND_LEVEL - 32, width: 16, height: 32, speed: 3, dx: 0, dy: 0, vy: 0, isGrounded: true, canInteract: false, interactionTarget: null, lives: 3, isInvincible: false, invincibilityTimer: 0, activeToolIndex: -1, lastDx: 1, lastDy: 0 },
+            player: { x: 450, y: GROUND_LEVEL - 32, width: 16, height: 32, speed: BASE_PLAYER_SPEED, dx: 0, dy: 0, vy: 0, isGrounded: true, canInteract: false, interactionTarget: null, lives: 3, isInvincible: false, invincibilityTimer: 0, activeToolIndex: -1, lastDx: 1, lastDy: 0 },
             mine: { grid: null, damagedBlocks: {}, chest: { x: 0, y: 0, isOpen: false }, exit: { x: TILE_SIZE, y: TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE * 2 }, ghosts: [], ghostSpawnTimer: 0 },
             surface: { 
                 mineEntrance: { x: 720, y: GROUND_LEVEL - 80, width: 60, height: 80 },
@@ -419,6 +434,7 @@
             dayNightCycle: 0
         };
         
+        // Quest definitions
         const QUESTS = {
             'find_ruins': {
                 text: 'Задача: Найди руины',
@@ -432,6 +448,7 @@
             }
         };
 
+        // Upgrade cost formulas
         const upgradeCosts = {
             collector: (level) => Math.ceil(50 * Math.pow(1.8, level - 1)),
             purifier: (level) => Math.ceil(75 * Math.pow(2, level - 1)),
@@ -439,6 +456,7 @@
             cooler: (level) => Math.ceil(150 * Math.pow(2.5, level - 1)),
         };
         
+        // Function to draw an item on a canvas
         function drawItem(ctx, itemId, x, y, size) {
              ctx.clearRect(x, y, size, size); ctx.save(); ctx.translate(x, y);
             const s = size / 40;
@@ -465,6 +483,7 @@
              ctx.restore();
         }
 
+        // Keyboard input handling
         const keys = { left: { pressed: false }, right: { pressed: false }, up: { pressed: false }, down: { pressed: false } };
         
         window.addEventListener('keydown', (e) => {
@@ -485,6 +504,7 @@
             }
         });
 
+        // Touch controls setup
         function setupTouchControls() {
             if (!('ontouchstart' in window || navigator.maxTouchPoints > 0)) return;
             document.getElementById('touch-controls').style.display = 'flex';
@@ -541,7 +561,7 @@
             document.getElementById('touch-interact').addEventListener('touchstart', (e) => { e.preventDefault(); handleInteraction(); });
         }
 
-
+        // Function to handle player interaction with game objects
         function handleInteraction() {
             const p = gameState.player;
             if (p.canInteract && p.interactionTarget) {
@@ -561,6 +581,7 @@
             }
         }
 
+        // Functions for game events
         function inspectRuins() {
             if (gameState.stationInspected) return;
             gameState.stationInspected = true;
@@ -630,6 +651,8 @@
 
         const uiPanel = document.querySelector('.ui-panel');
         const mineHud = document.getElementById('mine-hud');
+
+        // Main game loop
         function gameLoop() {
             gameState.time++;
             updateQuestSystem();
@@ -651,6 +674,7 @@
             requestAnimationFrame(gameLoop);
         }
         
+        // UI and inventory functions
         function updateActiveToolUI() {
             const p = gameState.player;
             const slot = document.getElementById('active-tool-slot');
@@ -670,7 +694,7 @@
                 
                 const toolCount = gameState.inventory.filter(item => item.id === activeTool.id).length;
 
-                drawItem(ctx, activeTool.id, 0, 0, 40);
+                drawItem(canvas.getContext('2d'), activeTool.id, 0, 0, 40);
                 countDiv.textContent = `x${toolCount}`;
                 countDiv.style.display = 'block';
                 
@@ -682,6 +706,7 @@
             }
         }
         
+        // Maze generation and pathfinding
         function generateMaze(cols, rows) {
             let grid = Array(rows).fill(null).map(() => Array(cols).fill(STONE_BLOCK_ID));
             let stack = [];
@@ -727,6 +752,7 @@
             return grid;
         }
 
+        // Drawing and update functions
         function drawSurface() { ctx.clearRect(0,0,800,450); drawSky(gameState.dayNightCycle); drawLandscape(); drawStartingChest(); drawCrystals(); drawStation(); }
         function updateSurface() { 
             gameState.dayNightCycle += 0.0005; 
@@ -771,6 +797,7 @@
             }
 
             gameState.mine.ghostSpawnTimer--;
+            // Check if it's time to spawn a ghost
             if (gameState.mine.ghostSpawnTimer <= 0 && gameState.mine.ghosts.length < 3) {
                 const emptyTiles = [];
                 for(let y = 0; y < MINE_ROWS; y++) for(let x = 0; x < MINE_COLS; x++) if(gameState.mine.grid[y][x] === 0) emptyTiles.push({x, y});
@@ -779,10 +806,11 @@
                     const end = emptyTiles[Math.floor(Math.random() * emptyTiles.length)];
                     const path = findPath(gameState.mine.grid, start, end);
                     if (path && path.length > 1) {
-                        gameState.mine.ghosts.push({ x: start.x * TILE_SIZE, y: start.y * TILE_SIZE, path, pathIndex: 0, speed: 1.5, alpha: 0, state: 'spawning' });
+                        gameState.mine.ghosts.push({ x: start.x * TILE_SIZE, y: start.y * TILE_SIZE, path, pathIndex: 0, speed: BASE_GHOST_SPEED, alpha: 0, state: 'spawning' });
                     }
                 }
-                gameState.mine.ghostSpawnTimer = 180 + Math.random() * 120;
+                // Reset the spawn timer with a larger range for less frequent spawns
+                gameState.mine.ghostSpawnTimer = GHOST_SPAWN_MIN + Math.random() * GHOST_SPAWN_MAX;
             }
 
             gameState.mine.ghosts.forEach((ghost, index) => {
@@ -837,7 +865,39 @@
         function generateLoot() { const loot = []; const roll = Math.random(); if (roll < 0.10) { loot.push({ id: 'metal_pickaxe', quantity: 1 }); } else if (roll < 0.40) { loot.push({ id: 'wooden_pickaxe', quantity: 1 }); } let crystals = 1; if (Math.random() < 0.50) crystals++; if (Math.random() < 0.20) crystals++; if (Math.random() < 0.01) crystals = 10; loot.push({ id: 'white_crystal', quantity: crystals }); return loot; }
         function openChest() { if (gameState.mine.chest.isOpen) return; gameState.mine.chest.isOpen = true; const loot = generateLoot(); loot.forEach(item => addToInventory(item.id, item.quantity)); showLootScreen(loot); }
         function openStartingChest() { const chest = gameState.surface.startingChest; if (chest.isOpen) return; chest.isOpen = true; addToInventory('wooden_pickaxe', 1); addToInventory('note', 1); const noteText = "Без кирки в шахту не суйся. Деревянная сгодится, но надолго её не хватит. В сундуках найдёшь получше — береги их, они откроют дорогу к глубинным кристаллам"; const lootForDisplay = [{ id: 'wooden_pickaxe', quantity: 1 }]; showModal("Вы нашли записку!", noteText, null, lootForDisplay); }
-        function drawPlayer() { if (gameState.player.isInvincible && Math.floor(gameState.time / 6) % 2 === 0) return; const p = gameState.player; const bobbing = !p.isGrounded ? 0 : Math.sin(gameState.time / 5) * 1; ctx.fillStyle = '#a0522d'; ctx.fillRect(p.x, p.y + bobbing, 16, 12); ctx.fillStyle = '#2c3e50'; if (keys.left.pressed || keys.right.pressed) { const legOffset = Math.sin(gameState.time / 4) * 3; ctx.fillRect(p.x + 2, p.y + 12, 4, 8 - legOffset); ctx.fillRect(p.x + 10, p.y + 12, 4, 8 + legOffset); } else { ctx.fillRect(p.x + 2, p.y + 12, 4, 8); ctx.fillRect(p.x + 10, p.y + 12, 4, 8); } ctx.fillStyle = '#f0d9b5'; ctx.fillRect(p.x + 4, p.y - 8 + bobbing, 8, 8); ctx.fillStyle = '#6c757d'; ctx.fillRect(p.x + 2, p.y - 12 + bobbing, 12, 4); ctx.fillStyle = 'yellow'; ctx.fillRect(p.x + 7, p.y - 11 + bobbing, 2, 2); }
+        function drawPlayer() { 
+            if (gameState.player.isInvincible && Math.floor(gameState.time / 6) % 2 === 0) return; 
+            const p = gameState.player; 
+            const bobbing = !p.isGrounded ? 0 : Math.sin(gameState.time / 5) * 1; 
+
+            // Offset the drawing by 12 pixels to align the sprite with the bounding box
+            const drawOffset = 12;
+
+            // Body
+            ctx.fillStyle = '#a0522d'; 
+            ctx.fillRect(p.x, p.y + bobbing + drawOffset, 16, 12); 
+            
+            // Legs
+            ctx.fillStyle = '#2c3e50'; 
+            if (keys.left.pressed || keys.right.pressed) { 
+                const legOffset = Math.sin(gameState.time / 4) * 3; 
+                ctx.fillRect(p.x + 2, p.y + 12 + drawOffset, 4, 8 - legOffset); 
+                ctx.fillRect(p.x + 10, p.y + 12 + drawOffset, 4, 8 + legOffset); 
+            } else { 
+                ctx.fillRect(p.x + 2, p.y + 12 + drawOffset, 4, 8); 
+                ctx.fillRect(p.x + 10, p.y + 12 + drawOffset, 4, 8); 
+            } 
+            
+            // Head and hat
+            ctx.fillStyle = '#f0d9b5'; 
+            ctx.fillRect(p.x + 4, p.y - 8 + bobbing + drawOffset, 8, 8); 
+            ctx.fillStyle = '#6c757d'; 
+            ctx.fillRect(p.x + 2, p.y - 12 + bobbing + drawOffset, 12, 4); 
+            
+            // Light on hat
+            ctx.fillStyle = 'yellow'; 
+            ctx.fillRect(p.x + 7, p.y - 11 + bobbing + drawOffset, 2, 2); 
+        }
         
         function drawGhosts() {
             gameState.mine.ghosts.forEach(ghost => {
@@ -886,6 +946,7 @@
             });
         }
         
+        // Upgrade logic
         function handleUpgrade(type) {
             const state = gameState[type.toLowerCase()];
             const cost = upgradeCosts[type.toLowerCase()](state.level);
@@ -905,7 +966,9 @@
         document.getElementById('upgradeStorage').onclick = () => handleUpgrade('storage');
         document.getElementById('upgradeCooler').onclick = () => handleUpgrade('cooler');
 
-        function lerpColor(a, b, amount) { const ar = a >> 16, ag = a >> 8 & 0xff, ab = a & 0xff, br = b >> 16, bg = b >> 8 & 0xff, bb = b & 0xff, rr = ar + amount * (br - ar), rg = ag + amount * (bg - ag), rb = ab + amount * (bb - ab); return `#${((1 << 24) + (rr << 16) + (rg << 8) + rb | 0).toString(16).slice(1).split('.')[0]}`; }
+        function lerpColor(a, b, amount) { const ar = a >> 16, ag = a >> 8 & 0xff, ab = a & 0xff, br = b >> 16, bg = b >> 8 & 0xff, bb = b >> 8 & 0xff, rr = ar + amount * (br - ar), rg = ag + amount * (bg - ag), rb = ab + amount * (bb - ab); return `#${((1 << 24) + (rr << 16) + (rg << 8) + rb | 0).toString(16).slice(1).split('.')[0]}`; }
+        
+        // Modal and UI functions
         const genericModal = document.getElementById('genericModal');
         function showModal(title, text, callback, loot = []) {
             genericModal.querySelector('#modalTitle').textContent = title;
@@ -990,6 +1053,7 @@
         }
         document.getElementById('closeLootBtn').onclick = () => lootModal.classList.remove('visible');
         
+        // Quest system
         const questDisplay = document.getElementById('quest-display');
         function updateQuestSystem() {
             const activeQuestId = gameState.quests.activeQuestId;
@@ -1007,6 +1071,7 @@
             }
         }
         
+        // Game saving and loading
         function saveGame() {
             localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
         }
@@ -1021,8 +1086,24 @@
             return false;
         }
 
+        // Navigation
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+                document.getElementById(btn.dataset.view).classList.add('active');
+                btn.classList.add('active');
+            });
+        });
 
+        // Game initialization
         function init() {
+            // Adjust speeds based on screen size (for mobile)
+            if (window.innerWidth <= 768) {
+                gameState.player.speed = BASE_PLAYER_SPEED * 0.7; // Reduce player speed by 30%
+                BASE_GHOST_SPEED = BASE_GHOST_SPEED * 0.7; // Reduce ghost speed by 30%
+            }
+
             const hasSave = loadGame();
             setupTouchControls();
             
@@ -1038,4 +1119,3 @@
     </script>
 </body>
 </html>
-
