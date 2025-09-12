@@ -654,25 +654,22 @@
             
             if (blockId === STONE_BLOCK_ID) return; 
 
-            if (blockId === WOOD_BLOCK_ID) {
-                if (tool.id !== 'wooden_pickaxe') return; 
-
-                const tileKey = `${facingTile.x},${facingTile.y}`;
-                let currentDamage = gameState.mine.damagedBlocks[tileKey] || 0;
-                currentDamage += ITEMS[tool.id].power;
-                tool.durability--;
-                if (currentDamage >= BLOCK_HEALTH[WOOD_BLOCK_ID]) {
-                    gameState.mine.grid[facingTile.y][facingTile.x] = 0;
-                    delete gameState.mine.damagedBlocks[tileKey];
-                } else {
-                    gameState.mine.damagedBlocks[tileKey] = currentDamage;
-                }
-                if (tool.durability <= 0) {
-                    gameState.hotbar[p.activeHotbarIndex] = null;
-                    p.activeHotbarIndex = -1;
-                }
-                updateHotbarUI(); // Обновляем хотбар после использования инструмента
+            // Use tool.power to mine any minable block
+            const tileKey = `${facingTile.x},${facingTile.y}`;
+            let currentDamage = gameState.mine.damagedBlocks[tileKey] || 0;
+            currentDamage += ITEMS[tool.id].power;
+            tool.durability--;
+            if (currentDamage >= BLOCK_HEALTH[blockId]) {
+                gameState.mine.grid[facingTile.y][facingTile.x] = 0;
+                delete gameState.mine.damagedBlocks[tileKey];
+            } else {
+                gameState.mine.damagedBlocks[tileKey] = currentDamage;
             }
+            if (tool.durability <= 0) {
+                gameState.hotbar[p.activeHotbarIndex] = null;
+                p.activeHotbarIndex = -1;
+            }
+            updateHotbarUI(); // Обновляем хотбар после использования инструмента
         }
 
         function getFacingTile() {
