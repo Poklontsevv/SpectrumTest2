@@ -323,8 +323,7 @@
 
         @media (max-width: 820px) and (orientation: portrait) {
             body { justify-content: flex-start; }
-            .game-container, #mine-hud { grid-template-columns: 1fr; }
-            #mine-hud { flex-direction: column; gap: 15px; }
+            .game-container, #mine-hud { flex-direction: column; gap: 15px; }
         }
     </style>
 </head>
@@ -366,6 +365,7 @@
                 </div>
                 <div id="mine-hud">
                     <div class="mine-hud-stats">
+                        <div id="tool-durability"></div>
                          <!-- Hotbar for mine-hud -->
                         <div id="hotbar-ui-mine" class="hotbar-grid">
                             <div class="inventory-slot" data-slot="0"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
@@ -541,7 +541,11 @@
 
         // Touch controls setup
         function setupTouchControls() {
-            if (!('ontouchstart' in window || navigator.maxTouchPoints > 0)) return;
+            if (!('ontouchstart' in window || navigator.maxTouchPoints > 0)) {
+                // Hide touch controls on non-touch devices
+                document.getElementById('touch-controls').style.display = 'none';
+                return;
+            }
             document.getElementById('touch-controls').style.display = 'flex';
             
             const joystickArea = document.getElementById('joystick-area');
@@ -1235,6 +1239,9 @@
                 gameState.player.speed = BASE_PLAYER_SPEED * 0.7; // Reduce player speed by 30%
                 BASE_GHOST_SPEED = BASE_GHOST_SPEED * 0.7; // Reduce ghost speed by 30%
             }
+
+            // Initialize touch controls
+            setupTouchControls();
 
             // Initialize inventory and hotbar if no save is found
             if (!loadGame()) {
