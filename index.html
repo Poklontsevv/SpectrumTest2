@@ -896,7 +896,12 @@
         }
         function generateLoot() { const loot = []; const roll = Math.random(); if (roll < 0.10) { loot.push({ id: 'metal_pickaxe', quantity: 1 }); } else if (roll < 0.40) { loot.push({ id: 'wooden_pickaxe', quantity: 1 }); } let crystals = 1; if (Math.random() < 0.50) crystals++; if (Math.random() < 0.20) crystals++; if (Math.random() < 0.01) crystals = 10; loot.push({ id: 'white_crystal', quantity: crystals }); return loot; }
         function openChest() { if (gameState.mine.chest.isOpen) return; gameState.mine.chest.isOpen = true; const loot = generateLoot(); loot.forEach(item => addToInventory(item.id, item.quantity)); showLootScreen(loot); }
-        function openStartingChest() { const chest = gameState.surface.startingChest; if (chest.isOpen) return; chest.isOpen = true; addToInventory('wooden_pickaxe', 1); addToInventory('note', 1); const noteText = "Без кирки в шахту не суйся. Деревянная сгодится, но надолго её не хватит. В сундуках найдёшь получше — береги их, они откроют дорогу к глубинным кристаллам"; const lootForDisplay = [{ id: 'wooden_pickaxe', quantity: 1 }]; showModal("Вы нашли записку!", noteText, null, lootForDisplay); }
+        function openStartingChest() { const chest = gameState.surface.startingChest; if (chest.isOpen) return; chest.isOpen = true; addToInventory('wooden_pickaxe', 1); addToInventory('note', 1); const noteText = "Без кирки в шахту не суйся. Деревянная сгодится, но надолго её не хватит. В сундуках найдёшь получше — береги их, они откроют дорогу к глубинным кристаллам"; const lootForDisplay = [{ id: 'wooden_pickaxe', quantity: 1 }]; showModal("Вы нашли записку!", noteText, () => showHintModal(), lootForDisplay); }
+        
+        function showHintModal() {
+            showModal("ПОДСКАЗКА", "Загляни в инвентарь. Там ты найдешь полезные артефакты. Перетащи их в хотбар, чтоб использовать");
+        }
+
         function drawPlayer() { 
             if (gameState.player.isInvincible && Math.floor(gameState.time / 6) % 2 === 0) return; 
             const p = gameState.player; 
