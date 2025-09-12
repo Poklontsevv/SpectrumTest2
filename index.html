@@ -36,7 +36,7 @@
         }
         
         #main-content {
-            flex-grow: 1;
+            flex-grow = 1;
             display: flex;
             flex-direction: column;
             width: 100%;
@@ -146,6 +146,9 @@
         }
 
         .resource-display { font-size: 12px; text-shadow: 0 0 5px var(--glow-color); }
+        .hidden-stats {
+            display: none;
+        }
         
         .player-stats { display: flex; align-items: center; gap: 15px; margin-top: 5px; }
         .hotbar-container {
@@ -233,11 +236,13 @@
             display: none;
             flex-direction: row;
             align-items: center;
-            justify-content: space-between;
+            justify-content: flex-end; 
         }
-        .tool-display { display: flex; flex-direction: column; align-items: center; gap: 5px;}
-        .mine-hud-stats { display: flex; align-items: center; gap: 20px; }
-        #tool-durability { font-size: 10px; }
+        .mine-hud-stats { 
+            display: flex; 
+            align-items: center; 
+            gap: 20px; 
+        }
 
         #touch-controls {
             display: none;
@@ -337,16 +342,18 @@
                 </div>
                 <div class="ui-panel">
                     <div class="resource-panel">
-                         <div class="resource-display" id="energyDisplay">ЭНЕРГИЯ: 0 / 100</div>
-                         <div class="resource-display" id="efficiencyDisplay">ЭФФЕКТИВНОСТЬ: 50%</div>
-                         <div class="resource-display" id="stabilityDisplay">СТАБИЛЬНОСТЬ: 100%</div>
+                        <div id="resource-stats-container">
+                            <div class="resource-display" id="energyDisplay">ЭНЕРГИЯ: 0 / 100</div>
+                            <div class="resource-display" id="efficiencyDisplay">ЭФФЕКТИВНОСТЬ: 50%</div>
+                            <div class="resource-display" id="stabilityDisplay">СТАБИЛЬНОСТЬ: 100%</div>
+                        </div>
                          <div class="player-stats">
                             <button class="action-button" id="inventoryBtn">ИНВЕНТАРЬ</button>
                             <!-- Hotbar on main UI -->
                             <div id="hotbar-ui" class="hotbar-grid">
-                                <div class="inventory-slot" data-slot="0"><canvas width="40" height="40"></canvas></div>
-                                <div class="inventory-slot" data-slot="1"><canvas width="40" height="40"></canvas></div>
-                                <div class="inventory-slot" data-slot="2"><canvas width="40" height="40"></canvas></div>
+                                <div class="inventory-slot" data-slot="0"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
+                                <div class="inventory-slot" data-slot="1"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
+                                <div class="inventory-slot" data-slot="2"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
                             </div>
                         </div>
                     </div>
@@ -358,18 +365,12 @@
                     </div>
                 </div>
                 <div id="mine-hud">
-                    <div class="tool-display">
-                        <div id="active-tool-slot" class="inventory-slot">
-                            <canvas width="40" height="40"></canvas>
-                        </div>
-                        <div id="tool-durability"></div>
-                    </div>
                     <div class="mine-hud-stats">
                          <!-- Hotbar for mine-hud -->
                         <div id="hotbar-ui-mine" class="hotbar-grid">
-                            <div class="inventory-slot" data-slot="0"><canvas width="40" height="40"></canvas></div>
-                            <div class="inventory-slot" data-slot="1"><canvas width="40" height="40"></canvas></div>
-                            <div class="inventory-slot" data-slot="2"><canvas width="40" height="40"></canvas></div>
+                            <div class="inventory-slot" data-slot="0"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
+                            <div class="inventory-slot" data-slot="1"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
+                            <div class="inventory-slot" data-slot="2"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
                         </div>
                         <button class="action-button" id="mineInventoryBtn">ИНВЕНТАРЬ</button>
                     </div>
@@ -631,7 +632,7 @@
                 gameState.mine.chest.isOpen = false;
                 gameState.mine.ghosts = [];
                 p.x = gameState.mine.exit.x; p.y = gameState.mine.exit.y;
-                updateActiveToolUI();
+                updateHotbarUI(); // Обновляем хотбар при смене локации
             } else {
                  p.x = gameState.surface.mineEntrance.x; p.y = GROUND_LEVEL - p.height;
             }
@@ -667,7 +668,7 @@
                     gameState.hotbar[p.activeHotbarIndex] = null;
                     p.activeHotbarIndex = -1;
                 }
-                updateActiveToolUI();
+                updateHotbarUI(); // Обновляем хотбар после использования инструмента
             }
         }
 
@@ -709,36 +710,6 @@
         }
         
         // UI and inventory functions
-        function updateActiveToolUI() {
-            const p = gameState.player;
-            const slot = document.getElementById('active-tool-slot');
-            const durabilityText = document.getElementById('tool-durability');
-            const canvas = slot.querySelector('canvas');
-            const ctx = canvas.getContext('2d');
-            
-            let countDiv = slot.querySelector('.item-count');
-            if (!countDiv) {
-                countDiv = document.createElement('div');
-                countDiv.className = 'item-count';
-                slot.appendChild(countDiv);
-            }
-
-            if (p.activeHotbarIndex !== -1 && gameState.hotbar[p.activeHotbarIndex]) {
-                const activeTool = gameState.hotbar[p.activeHotbarIndex];
-                
-                const toolCount = gameState.hotbar.filter(item => item && item.id === activeTool.id).length;
-
-                drawItem(canvas.getContext('2d'), activeTool.id, 0, 0, 40);
-                countDiv.textContent = `x${toolCount}`;
-                countDiv.style.display = 'block';
-                
-                durabilityText.textContent = `${activeTool.durability}/${ITEMS[activeTool.id].maxDurability}`;
-            } else {
-                ctx.clearRect(0, 0, 40, 40);
-                durabilityText.textContent = '';
-                countDiv.style.display = 'none';
-            }
-        }
         
         // Maze generation and pathfinding
         function generateMaze(cols, rows) {
@@ -994,9 +965,17 @@
         function updateUI() { 
             const playerLives = gameState.player.lives;
             document.getElementById('top-life-container').textContent = '❤'.repeat(playerLives); 
-            document.getElementById('energyDisplay').textContent = `ЭНЕРГИЯ: ${Math.floor(gameState.pureEnergy)} / ${gameState.storage.capacity}`; 
-            document.getElementById('efficiencyDisplay').textContent = `ЭФФЕКТИВНОСТЬ: ${Math.round(gameState.purifier.efficiency * 100)}%`;
-            document.getElementById('stabilityDisplay').textContent = `СТАБИЛЬНОСТЬ: ${Math.round(gameState.cooler.stability * 100)}%`;
+
+            // Show or hide resource stats based on station status
+            const resourceStatsContainer = document.getElementById('resource-stats-container');
+            if (gameState.stationRepaired) {
+                resourceStatsContainer.style.display = 'flex';
+                document.getElementById('energyDisplay').textContent = `ЭНЕРГИЯ: ${Math.floor(gameState.pureEnergy)} / ${gameState.storage.capacity}`; 
+                document.getElementById('efficiencyDisplay').textContent = `ЭФФЕКТИВНОСТЬ: ${Math.round(gameState.purifier.efficiency * 100)}%`;
+                document.getElementById('stabilityDisplay').textContent = `СТАБИЛЬНОСТЬ: ${Math.round(gameState.cooler.stability * 100)}%`;
+            } else {
+                 resourceStatsContainer.style.display = 'none';
+            }
             
             ['Collector', 'Purifier', 'Storage', 'Cooler'].forEach(type => {
                 const btn = document.getElementById(`upgrade${type}`);
@@ -1064,65 +1043,62 @@
         const hotbarUIMine = document.getElementById('hotbar-ui-mine');
         
         function updateHotbarUI() {
-            hotbarUI.innerHTML = '';
-            hotbarUIMine.innerHTML = '';
-            hotbarModal.innerHTML = '';
-            for (let i = 0; i < HOTBAR_SIZE; i++) {
-                const item = gameState.hotbar[i];
-                // Update hotbar in main UI
-                const slotUI = document.createElement('div');
-                slotUI.className = 'inventory-slot';
-                slotUI.dataset.hotbarIndex = i;
-                if (i === gameState.player.activeHotbarIndex) slotUI.classList.add('active');
-                const canvasUI = document.createElement('canvas');
-                canvasUI.width = canvasUI.height = 40;
-                slotUI.appendChild(canvasUI);
-                if (item) {
-                    drawItem(canvasUI.getContext('2d'), item.id, 0, 0, 40);
-                    const countUI = document.createElement('div');
-                    countUI.className = 'item-count';
-                    countUI.textContent = item.quantity || item.durability;
-                    slotUI.appendChild(countUI);
-                }
-                hotbarUI.appendChild(slotUI);
-                hotbarUIMine.appendChild(slotUI.cloneNode(true));
+            // Hotbar elements in the main UI and mine UI
+            const hotbarElements = [
+                ...document.querySelectorAll('#hotbar-ui .inventory-slot'),
+                ...document.querySelectorAll('#hotbar-ui-mine .inventory-slot')
+            ];
 
-                // Update hotbar in modal
-                const slotModal = document.createElement('div');
-                slotModal.className = 'inventory-slot hotbar-slot';
-                slotModal.dataset.hotbarIndex = i;
-                if (i === gameState.player.activeHotbarIndex) slotModal.classList.add('active');
-                const canvasModal = document.createElement('canvas');
-                canvasModal.width = canvasModal.height = 40;
-                slotModal.appendChild(canvasModal);
-                if (item) {
-                    drawItem(canvasModal.getContext('2d'), item.id, 0, 0, 40);
-                    const countModal = document.createElement('div');
-                    countModal.className = 'item-count';
-                    countModal.textContent = item.quantity || item.durability;
-                    slotModal.appendChild(countModal);
-                }
-                hotbarModal.appendChild(slotModal);
-            }
+            // Update all hotbar UIs simultaneously
+            hotbarElements.forEach(slot => {
+                const index = parseInt(slot.dataset.slot);
+                const item = gameState.hotbar[index];
+                const canvas = slot.querySelector('canvas');
+                const countDiv = slot.querySelector('.item-count');
 
-             hotbarUI.querySelectorAll('.inventory-slot').forEach(slot => {
-                slot.addEventListener('click', (e) => {
-                    const index = parseInt(e.currentTarget.dataset.hotbarIndex);
-                    const item = gameState.hotbar[index];
-                    if (item) {
-                        gameState.player.activeHotbarIndex = index;
-                    }
-                });
+                // Clear previous content
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                countDiv.textContent = '';
+                countDiv.style.display = 'none';
+
+                if (item) {
+                    drawItem(ctx, item.id, 0, 0, 40);
+                    countDiv.textContent = item.quantity ? `x${item.quantity}` : `${item.durability}/${ITEMS[item.id].maxDurability}`;
+                    countDiv.style.display = 'block';
+                }
+
+                // Set active slot glow
+                if (index === gameState.player.activeHotbarIndex) {
+                    slot.classList.add('active');
+                } else {
+                    slot.classList.remove('active');
+                }
             });
 
-             hotbarUIMine.querySelectorAll('.inventory-slot').forEach(slot => {
-                slot.addEventListener('click', (e) => {
-                    const index = parseInt(e.currentTarget.dataset.hotbarIndex);
-                    const item = gameState.hotbar[index];
-                    if (item) {
-                        gameState.player.activeHotbarIndex = index;
-                    }
-                });
+            // Update hotbar in modal
+            const hotbarModalElements = document.querySelectorAll('#hotbar-modal .inventory-slot');
+            hotbarModalElements.forEach((slot, index) => {
+                const item = gameState.hotbar[index];
+                const canvas = slot.querySelector('canvas');
+                const countDiv = slot.querySelector('.item-count');
+
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                countDiv.textContent = '';
+                countDiv.style.display = 'none';
+                
+                if (item) {
+                    drawItem(ctx, item.id, 0, 0, 40);
+                    countDiv.textContent = item.quantity || item.durability;
+                    countDiv.style.display = 'block';
+                }
+
+                if (index === gameState.player.activeHotbarIndex) {
+                    slot.classList.add('active');
+                } else {
+                    slot.classList.remove('active');
+                }
             });
         }
 
@@ -1137,12 +1113,13 @@
                 const canvas = document.createElement('canvas');
                 canvas.width = canvas.height = 40;
                 slot.appendChild(canvas);
+                const count = document.createElement('div');
+                count.className = 'item-count';
+                slot.appendChild(count);
+
                 if (item) {
                     drawItem(canvas.getContext('2d'), item.id, 0, 0, 40);
-                    const count = document.createElement('div');
-                    count.className = 'item-count';
                     count.textContent = item.quantity || item.durability;
-                    slot.appendChild(count);
                 }
                 inventoryGrid.appendChild(slot);
             }
