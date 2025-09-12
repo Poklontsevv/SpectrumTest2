@@ -294,6 +294,9 @@
             padding: 5px 0;
             border-top: 2dpx solid var(--border-color);
             flex-shrink: 0;
+            position: fixed;
+            bottom: 0;
+            left: 0;
         }
         .nav-btn {
             background: none;
@@ -1207,8 +1210,8 @@
         function init() {
             // Adjust speeds based on screen size (for mobile)
             if (window.innerWidth <= 768) {
-                gameState.player.speed = BASE_PLAYER_SPEED * 0.7; // Reduce player speed by 30%
-                BASE_GHOST_SPEED = BASE_GHOST_SPEED * 0.7; // Reduce ghost speed by 30%
+                gameState.player.speed = BASE_PLAYER_SPEED * 0.9; // Увеличиваем скорость персонажа
+                BASE_GHOST_SPEED = BASE_GHOST_SPEED * 0.9; // Увеличиваем скорость призраков
             }
 
             // Initialize touch controls
