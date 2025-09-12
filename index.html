@@ -49,6 +49,24 @@
             min-height: 0;
         }
         
+        #top-hud {
+            width: 100%;
+            background-color: var(--ui-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 5px 15px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        #top-life-container {
+            font-size: 24px;
+            color: #ff4757;
+            letter-spacing: 2px;
+        }
+
         .game-wrapper {
             position: relative;
             width: 100%;
@@ -62,6 +80,22 @@
             width: 100%;
             height: 100%;
             image-rendering: pixelated;
+        }
+
+        #quest-display {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 5px;
+            font-size: 10px;
+            text-align: center;
+            pointer-events: none;
+            z-index: 10;
+            white-space: nowrap;
         }
 
         .ui-panel, #mine-hud {
@@ -94,7 +128,6 @@
         }
         
         .player-stats { display: flex; align-items: center; gap: 15px; margin-top: 5px; }
-        #life-container { font-size: 24px; color: #ff4757; letter-spacing: 2px; }
 
         .action-button {
              background-color: var(--button-bg);
@@ -217,8 +250,12 @@
 <body>
 
     <div class="game-container">
+        <div id="top-hud">
+            <div id="top-life-container"></div>
+        </div>
         <div class="game-wrapper">
             <canvas id="gameCanvas" width="800" height="450"></canvas>
+            <div id="quest-display"></div>
         </div>
         <div class="ui-panel">
             <div class="resource-panel">
@@ -226,7 +263,6 @@
                  <div class="resource-display" id="efficiencyDisplay">ЭФФЕКТИВНОСТЬ: 50%</div>
                  <div class="resource-display" id="stabilityDisplay">СТАБИЛЬНОСТЬ: 100%</div>
                  <div class="player-stats">
-                    <div id="life-container"></div>
                     <button class="action-button" id="inventoryBtn">ИНВЕНТАРЬ</button>
                 </div>
             </div>
@@ -245,7 +281,6 @@
                 <div id="tool-durability"></div>
             </div>
             <div class="mine-hud-stats">
-                 <div id="mine-life-container" style="font-size: 24px; color: #ff4757; letter-spacing: 2px;"></div>
                  <button class="action-button" id="mineInventoryBtn">ИНВЕНТАРЬ</button>
             </div>
         </div>
@@ -307,10 +342,27 @@
             },
             stationRepaired: false,
             stationInspected: false,
+            quests: {
+                activeQuestId: 'find_ruins',
+                completed: {}
+            },
             time: 0,
             dayNightCycle: 0
         };
         
+        const QUESTS = {
+            'find_ruins': {
+                text: 'Задача: Найди руины',
+                isComplete: (state) => state.stationInspected,
+                nextQuest: 'find_pickaxe'
+            },
+            'find_pickaxe': {
+                text: 'Задача: Найди кирку',
+                isComplete: (state) => state.surface.startingChest.isOpen,
+                nextQuest: null
+            }
+        };
+
         const upgradeCosts = {
             collector: (level) => Math.ceil(50 * Math.pow(1.8, level - 1)),
             purifier: (level) => Math.ceil(75 * Math.pow(2, level - 1)),
@@ -511,6 +563,7 @@
         const mineHud = document.getElementById('mine-hud');
         function gameLoop() {
             gameState.time++;
+            updateQuestSystem();
             if (gameState.currentLocation === 'surface') {
                 updateSurface(); 
                 drawSurface(); 
@@ -749,8 +802,7 @@
         function drawStartingChest() { const chest = gameState.surface.startingChest; const chestX = chest.x; const chestY = chest.y; ctx.fillStyle = '#8B4513'; ctx.fillRect(chestX + 5, chestY + 15, TILE_SIZE - 10, TILE_SIZE - 20); ctx.fillStyle = '#FFD700'; if (chest.isOpen) { ctx.fillRect(chestX + 3, chestY + 5, TILE_SIZE - 6, 8); } else { ctx.fillRect(chestX + 5, chestY + 10, TILE_SIZE - 10, 5); } }
         function updateUI() { 
             const playerLives = gameState.player.lives;
-            document.getElementById('life-container').textContent = '❤'.repeat(playerLives); 
-            document.getElementById('mine-life-container').textContent = '❤'.repeat(playerLives); 
+            document.getElementById('top-life-container').textContent = '❤'.repeat(playerLives); 
             document.getElementById('energyDisplay').textContent = `ЭНЕРГИЯ: ${Math.floor(gameState.pureEnergy)} / ${gameState.storage.capacity}`; 
             document.getElementById('efficiencyDisplay').textContent = `ЭФФЕКТИВНОСТЬ: ${Math.round(gameState.purifier.efficiency * 100)}%`;
             document.getElementById('stabilityDisplay').textContent = `СТАБИЛЬНОСТЬ: ${Math.round(gameState.cooler.stability * 100)}%`;
@@ -869,6 +921,23 @@
         }
         document.getElementById('closeLootBtn').onclick = () => lootModal.classList.remove('visible');
         
+        const questDisplay = document.getElementById('quest-display');
+        function updateQuestSystem() {
+            const activeQuestId = gameState.quests.activeQuestId;
+            if (!activeQuestId) {
+                questDisplay.textContent = "Нет активных заданий";
+                return;
+            }
+
+            const quest = QUESTS[activeQuestId];
+            questDisplay.textContent = quest.text;
+
+            if (quest.isComplete(gameState) && !gameState.quests.completed[activeQuestId]) {
+                gameState.quests.completed[activeQuestId] = true;
+                gameState.quests.activeQuestId = quest.nextQuest || null;
+            }
+        }
+        
         function saveGame() {
             localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
         }
@@ -877,7 +946,6 @@
             const savedData = localStorage.getItem(SAVE_KEY);
             if (savedData) {
                 const loadedState = JSON.parse(savedData);
-                // Simple merge to avoid breaking game on updates
                 Object.assign(gameState, loadedState);
                 return true;
             }
@@ -893,7 +961,7 @@
             } else {
                 gameLoop();
             }
-            setInterval(saveGame, 5000); // Autosave every 5 seconds
+            setInterval(saveGame, 5000);
         }
 
         init();
