@@ -292,7 +292,7 @@
             background-color: #000;
             justify-content: space-around;
             padding: 5px 0;
-            border-top: 2px solid var(--border-color);
+            border-top: 2dpx solid var(--border-color);
             flex-shrink: 0;
         }
         .nav-btn {
@@ -1081,29 +1081,27 @@
             });
 
             // Update hotbar in modal
-            const hotbarModalElements = document.querySelectorAll('#hotbar-modal .inventory-slot');
-            hotbarModalElements.forEach((slot, index) => {
-                const item = gameState.hotbar[index];
-                const canvas = slot.querySelector('canvas');
-                const countDiv = slot.querySelector('.item-count');
+            hotbarModal.innerHTML = ''; // Clear the modal hotbar first
+            for (let i = 0; i < HOTBAR_SIZE; i++) {
+                const item = gameState.hotbar[i];
+                const slotModal = document.createElement('div');
+                slotModal.className = 'inventory-slot hotbar-slot';
+                slotModal.dataset.hotbarIndex = i;
+                if (i === gameState.player.activeHotbarIndex) slotModal.classList.add('active');
+                const canvasModal = document.createElement('canvas');
+                canvasModal.width = canvasModal.height = 40;
+                slotModal.appendChild(canvasModal);
+                const countModal = document.createElement('div');
+                countModal.className = 'item-count';
+                slotModal.appendChild(countModal);
 
-                const ctx = canvas.getContext('2d');
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                countDiv.textContent = '';
-                countDiv.style.display = 'none';
-                
                 if (item) {
-                    drawItem(ctx, item.id, 0, 0, 40);
-                    countDiv.textContent = item.quantity || item.durability;
-                    countDiv.style.display = 'block';
+                    drawItem(canvasModal.getContext('2d'), item.id, 0, 0, 40);
+                    countModal.textContent = item.quantity || item.durability;
+                    countModal.style.display = 'block';
                 }
-
-                if (index === gameState.player.activeHotbarIndex) {
-                    slot.classList.add('active');
-                } else {
-                    slot.classList.remove('active');
-                }
-            });
+                hotbarModal.appendChild(slotModal);
+            }
         }
 
         function openInventory() {
