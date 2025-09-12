@@ -17,7 +17,7 @@
             --button-bg: #1e293b;
             --button-hover-bg: #334155;
             --button-disabled-bg: #475569;
-            --font-pixel: 'Press Start 2P', cursive;
+            --font-pixel: 'Press+Start+2P', cursive;
         }
 
         html, body {
@@ -430,7 +430,6 @@
         const JUMP_STRENGTH = -11;
         const GROUND_LEVEL = 350;
         const INVINCIBILITY_DURATION = 120;
-        const SAVE_KEY = 'spectralHarvesterSave';
         const INVENTORY_SIZE = 20;
         const HOTBAR_SIZE = 3;
 
@@ -1202,34 +1201,6 @@
             }
         }
         
-        // Game saving and loading
-        function saveGame() {
-            localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
-        }
-
-        function loadGame() {
-            const savedData = localStorage.getItem(SAVE_KEY);
-            if (savedData) {
-                const loadedState = JSON.parse(savedData);
-                // Merge loaded state, ensuring arrays are initialized
-                Object.assign(gameState, loadedState);
-                if (!loadedState.inventory) gameState.inventory = Array(INVENTORY_SIZE).fill(null);
-                if (!loadedState.hotbar) gameState.hotbar = Array(HOTBAR_SIZE).fill(null);
-                return true;
-            }
-            return false;
-        }
-
-        // Navigation
-        document.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-                document.getElementById(btn.dataset.view).classList.add('active');
-                btn.classList.add('active');
-            });
-        });
-
         // Game initialization
         function init() {
             // Adjust speeds based on screen size (for mobile)
@@ -1241,15 +1212,10 @@
             // Initialize touch controls
             setupTouchControls();
 
-            // Initialize inventory and hotbar if no save is found
-            if (!loadGame()) {
-                gameState.inventory = Array(INVENTORY_SIZE).fill(null);
-                gameState.hotbar = Array(HOTBAR_SIZE).fill(null);
-                 showModal("Мир был разбит...", "Корпорация высосала спектральную энергию людей... тьма породила призрачные тени... Ты - Избранный и твоя задача - очистить мир и возродить источник чистой энергии.", gameLoop);
-            } else {
-                gameLoop();
-            }
-            setInterval(saveGame, 5000);
+            // Initialize inventory and hotbar
+            gameState.inventory = Array(INVENTORY_SIZE).fill(null);
+            gameState.hotbar = Array(HOTBAR_SIZE).fill(null);
+            showModal("Мир был разбит...", "Корпорация высосала спектральную энергию людей... тьма породила призрачные тени... Ты - Избранный и твоя задача - очистить мир и возродить источник чистой энергии.", gameLoop);
         }
 
         init();
