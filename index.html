@@ -455,7 +455,7 @@
             purifier: { level: 1, efficiency: 0.5 },
             cooler: { level: 1, stability: 1.0 },
             player: { x: 450, y: GROUND_LEVEL - 32, width: 16, height: 32, speed: BASE_PLAYER_SPEED, dx: 0, dy: 0, vy: 0, isGrounded: true, canInteract: false, interactionTarget: null, lives: 3, isInvincible: false, invincibilityTimer: 0, activeHotbarIndex: -1, lastDx: 1, lastDy: 0 },
-            mine: { grid: null, damagedBlocks: {}, chest: { x: 0, y: 0, isOpen: false }, exit: { x: TILE_SIZE, y: TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE * 2 }, ghosts: [], ghostSpawnTimer: 0 },
+            mine: { grid: null, damagedBlocks: {}, chest: { x: 0, y: 0, isOpen: false }, exit: { x: TILE_SIZE, y: TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE * 2 }, ghosts: [], ghostSpawnTimer: 0, hasExplored: false },
             surface: { 
                 mineEntrance: { x: 720, y: GROUND_LEVEL - 80, width: 60, height: 80 },
                 startingChest: { x: 650, y: GROUND_LEVEL - TILE_SIZE, isOpen: false },
@@ -481,6 +481,16 @@
             'find_pickaxe': {
                 text: 'Задача: Найди кирку',
                 isComplete: (state) => state.surface.startingChest.isOpen,
+                nextQuest: 'examine_inventory'
+            },
+            'examine_inventory': {
+                text: 'Задача: Изучи инвентарь',
+                isComplete: (state) => state.hotbar.some(item => item && ITEMS[item.id].type === 'tool'),
+                nextQuest: 'explore_mine'
+            },
+            'explore_mine': {
+                text: 'Задача: Изучи шахты',
+                isComplete: (state) => state.mine.hasExplored,
                 nextQuest: null
             }
         };
@@ -608,7 +618,7 @@
             if (p.canInteract && p.interactionTarget) {
                  switch(p.interactionTarget.type) {
                     case 'mineEntrance': 
-                        if (gameState.surface.startingChest.isOpen) {
+                        if (gameState.hotbar.some(item => item && ITEMS[item.id].type === 'tool')) {
                             changeLocation('mine');
                         }
                         break;
@@ -630,6 +640,10 @@
         }
 
         function changeLocation(location) {
+            if (location === 'mine' && gameState.quests.activeQuestId === 'explore_mine' && !gameState.mine.hasExplored) {
+                gameState.mine.hasExplored = true;
+            }
+            
             gameState.currentLocation = location;
             const p = gameState.player;
             if (location === 'mine') {
@@ -655,7 +669,8 @@
 
             const blockId = gameState.mine.grid[facingTile.y][facingTile.x];
             
-            if (blockId === STONE_BLOCK_ID) return; 
+            // Allow mining only if the block is not a path or an unbreakable wall.
+            if (blockId === 0 || blockId === STONE_BLOCK_ID) return; 
 
             // Use tool.power to mine any minable block
             const tileKey = `${facingTile.x},${facingTile.y}`;
@@ -869,7 +884,7 @@
         function applyPhysics() { const p = gameState.player; if (gameState.currentLocation === 'surface') { p.vy += GRAVITY; p.x += p.dx; let nY = p.y + p.vy; if (nY + p.height >= GROUND_LEVEL) { nY = GROUND_LEVEL - p.height; p.vy = 0; p.isGrounded = true; } else { p.isGrounded = false; } p.y = nY; } else { p.isGrounded = true; p.vy = 0; let nX = p.x + p.dx; let nY = p.y + p.dy; const grid = gameState.mine.grid; if (!checkWallCollision(nX, nY, p.width, p.height, grid)) { p.x = nX; p.y = nY; } else { if (!checkWallCollision(nX, p.y, p.width, p.height, grid)) { p.x = nX; } if (!checkWallCollision(p.x, nY, p.width, p.height, grid)) { p.y = nY; } } } if (p.x < 0) p.x = 0; if (p.x + p.width > canvas.width) p.x = canvas.width - p.width; if (p.y < 0) p.y = 0; if (p.y + p.height > canvas.height) p.y = canvas.height - p.height; }
         function checkWallCollision(x,y,w,h,g){if(!g)return!1;const lT=Math.floor(x/TILE_SIZE),rT=Math.floor((x+w)/TILE_SIZE),tT=Math.floor(y/TILE_SIZE),bT=Math.floor((y+h)/TILE_SIZE);for(let row=tT;row<=bT;row++){for(let col=lT;col<=rT;col++){if(row<0||row>=MINE_ROWS||col<0||col>=MINE_COLS||g[row][col]===STONE_BLOCK_ID||g[row][col]===WOOD_BLOCK_ID)return!0}}return!1}
         function rectsOverlap(r1, r2) { return r1.x < r2.x + r2.width && r1.x + r1.width > r2.x && r1.y < r2.y + r2.height && r1.y + r1.height > r2.y; }
-        function checkInteractionZones() { const p = gameState.player; let inZone = false; let target = null; const pRect = { x: p.x, y: p.y, width: p.width, height: p.height }; if (gameState.currentLocation === 'surface') { if (rectsOverlap(pRect, gameState.surface.mineEntrance) && gameState.surface.startingChest.isOpen) { inZone = true; target = {type: 'mineEntrance'}; } const sChest = gameState.surface.startingChest; const sChestRect = { x: sChest.x, y: sChest.y, width: TILE_SIZE, height: TILE_SIZE }; if (!sChest.isOpen && rectsOverlap(pRect, sChestRect) && gameState.stationInspected) { inZone = true; target = { type: 'startingChest' }; } if (!gameState.stationRepaired) { if(rectsOverlap(pRect, gameState.surface.stationRuins)) { inZone = true; target = {type: 'stationRuins'}; } } } else { const exit = gameState.mine.exit; if (rectsOverlap(pRect, exit)) { inZone = true; target = {type: 'mineExit'}; } const chest = gameState.mine.chest; const chestRect = { x: chest.x * TILE_SIZE, y: chest.y * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE }; if (!chest.isOpen && rectsOverlap(pRect, chestRect)) { inZone = true; target = {type: 'chest'}; } } p.canInteract = inZone; p.interactionTarget = target; }
+        function checkInteractionZones() { const p = gameState.player; let inZone = false; let target = null; const pRect = { x: p.x, y: p.y, width: p.width, height: p.height }; if (gameState.currentLocation === 'surface') { if (rectsOverlap(pRect, gameState.surface.mineEntrance) && gameState.hotbar.some(item => item && ITEMS[item.id].type === 'tool')) { inZone = true; target = {type: 'mineEntrance'}; } const sChest = gameState.surface.startingChest; const sChestRect = { x: sChest.x, y: sChest.y, width: TILE_SIZE, height: TILE_SIZE }; if (!sChest.isOpen && rectsOverlap(pRect, sChestRect) && gameState.stationInspected) { inZone = true; target = { type: 'startingChest' }; } if (!gameState.stationRepaired) { if(rectsOverlap(pRect, gameState.surface.stationRuins)) { inZone = true; target = {type: 'stationRuins'}; } } } else { const exit = gameState.mine.exit; if (rectsOverlap(pRect, exit)) { inZone = true; target = {type: 'mineExit'}; } const chest = gameState.mine.chest; const chestRect = { x: chest.x * TILE_SIZE, y: chest.y * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE }; if (!chest.isOpen && rectsOverlap(pRect, chestRect)) { inZone = true; target = {type: 'chest'}; } } p.canInteract = inZone; p.interactionTarget = target; }
 
         function addToInventory(itemId, quantity) { 
             const itemDef = ITEMS[itemId];
@@ -899,10 +914,31 @@
         }
         function generateLoot() { const loot = []; const roll = Math.random(); if (roll < 0.10) { loot.push({ id: 'metal_pickaxe', quantity: 1 }); } else if (roll < 0.40) { loot.push({ id: 'wooden_pickaxe', quantity: 1 }); } let crystals = 1; if (Math.random() < 0.50) crystals++; if (Math.random() < 0.20) crystals++; if (Math.random() < 0.01) crystals = 10; loot.push({ id: 'white_crystal', quantity: crystals }); return loot; }
         function openChest() { if (gameState.mine.chest.isOpen) return; gameState.mine.chest.isOpen = true; const loot = generateLoot(); loot.forEach(item => addToInventory(item.id, item.quantity)); showLootScreen(loot); }
-        function openStartingChest() { const chest = gameState.surface.startingChest; if (chest.isOpen) return; chest.isOpen = true; addToInventory('wooden_pickaxe', 1); addToInventory('note', 1); const noteText = "Без кирки в шахту не суйся. Деревянная сгодится, но надолго её не хватит. В сундуках найдёшь получше — береги их, они откроют дорогу к глубинным кристаллам"; const lootForDisplay = [{ id: 'wooden_pickaxe', quantity: 1 }]; showModal("Вы нашли записку!", noteText, () => showHintModal(), lootForDisplay); }
-        
-        function showHintModal() {
+        function openStartingChest() { 
+            const chest = gameState.surface.startingChest; 
+            if (chest.isOpen) return; 
+            chest.isOpen = true; 
+            addToInventory('wooden_pickaxe', 1); 
+            addToInventory('note', 1); 
+            
+            // Set new quest
+            const activeQuestId = gameState.quests.activeQuestId;
+            if (activeQuestId === 'find_pickaxe') {
+                 gameState.quests.completed[activeQuestId] = true;
+                 gameState.quests.activeQuestId = QUESTS[activeQuestId].nextQuest;
+            }
+
+            const noteText = "Без кирки в шахту не суйся. Деревянная сгодится, но надолго её не хватит. В сундуках найдёшь получше — береги их, они откроют дорогу к глубинным кристаллам"; 
+            const lootForDisplay = [{ id: 'wooden_pickaxe', quantity: 1 }]; 
+            showModal("Вы нашли записку!", noteText, showInventoryHintModal, lootForDisplay); 
+        }
+
+        function showInventoryHintModal() {
             showModal("ПОДСКАЗКА", "Загляни в инвентарь. Там ты найдешь полезные артефакты. Перетащи их в хотбар, чтоб использовать");
+        }
+        
+        function showMineHintModal() {
+            showModal("ПОДСКАЗКА", "Теперь изучи глубины шахт. Там ты сможешь добыть ресурсы, необходимые для восстановления энергостанции. И будь осторожен - в шахтах может быть опасно.");
         }
 
         function drawPlayer() { 
@@ -955,7 +991,7 @@
                 ctx.globalAlpha = 1.0;
             });
         }
-        function drawInteractionPrompt() { if (gameState.player.canInteract && gameState.player.interactionTarget) { ctx.font = "12px 'Press Start 2P'"; ctx.fillStyle = "white"; ctx.textAlign = "center"; let text = "?"; let rect; if (gameState.player.interactionTarget.type === 'mineEntrance') {text="ВОЙТИ"; rect=gameState.surface.mineEntrance} if (gameState.player.interactionTarget.type === 'mineExit') {text="ВЫХОД"; rect=gameState.mine.exit} if (gameState.player.interactionTarget.type === 'chest') {text="ОТКРЫТЬ"; rect={x:gameState.mine.chest.x*TILE_SIZE, y:gameState.mine.chest.y*TILE_SIZE, width:TILE_SIZE, height:TILE_SIZE}} if (gameState.player.interactionTarget.type === 'startingChest') {text="ОТКРЫТЬ"; rect={x:gameState.surface.startingChest.x, y:gameState.surface.startingChest.y, width:TILE_SIZE, height:TILE_SIZE}} if (gameState.player.interactionTarget.type === 'stationRuins') { text = "Осмотреть"; rect = gameState.surface.stationRuins; } 
+        function drawInteractionPrompt() { const p = gameState.player; if (p.canInteract && p.interactionTarget) { ctx.font = "12px 'Press Start 2P'"; ctx.fillStyle = "white"; ctx.textAlign = "center"; let text = "?"; let rect; if (gameState.player.interactionTarget.type === 'mineEntrance') { text="ВОЙТИ"; rect=gameState.surface.mineEntrance; if(!gameState.hotbar.some(item => item && ITEMS[item.id].type === 'tool')) { text = "КИРКА НУЖНА"; } } if (gameState.player.interactionTarget.type === 'mineExit') {text="ВЫХОД"; rect=gameState.mine.exit} if (gameState.player.interactionTarget.type === 'chest') {text="ОТКРЫТЬ"; rect={x:gameState.mine.chest.x*TILE_SIZE, y:gameState.mine.chest.y*TILE_SIZE, width:TILE_SIZE, height:TILE_SIZE}} if (gameState.player.interactionTarget.type === 'startingChest') {text="ОТКРЫТЬ"; rect={x:gameState.surface.startingChest.x, y:gameState.surface.startingChest.y, width:TILE_SIZE, height:TILE_SIZE}} if (gameState.player.interactionTarget.type === 'stationRuins') { text = "Осмотреть"; rect = gameState.surface.stationRuins; } 
             if (rect) {
                 let yPos = rect.y - 10;
                 if (gameState.player.interactionTarget.type === 'stationRuins') {
@@ -1166,7 +1202,20 @@
 
         document.getElementById('inventoryBtn').onclick = openInventory;
         document.getElementById('mineInventoryBtn').onclick = openInventory;
-        document.getElementById('closeInventoryBtn').onclick = () => inventoryModal.classList.remove('visible');
+        document.getElementById('closeInventoryBtn').onclick = () => {
+             const wasExamineInventoryQuestActive = gameState.quests.activeQuestId === 'examine_inventory';
+             
+             inventoryModal.classList.remove('visible');
+
+             const hasPickaxeInHotbarAfter = gameState.hotbar.some(item => item && ITEMS[item.id].type === 'tool');
+
+             // Check if the quest was completed on closing the inventory
+             if (wasExamineInventoryQuestActive && hasPickaxeInHotbarAfter) {
+                 gameState.quests.completed[wasExamineInventoryQuestActive] = true;
+                 gameState.quests.activeQuestId = 'explore_mine';
+                 showMineHintModal();
+             }
+        };
 
         const lootModal = document.getElementById('lootModal');
         const lootContainer = document.getElementById('lootContainer');
@@ -1224,6 +1273,30 @@
         }
 
         init();
+        
+        // Navigation system
+        document.querySelectorAll('.nav-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const targetViewId = button.dataset.view;
+                document.querySelectorAll('.view').forEach(view => {
+                    view.classList.remove('active');
+                });
+                document.querySelectorAll('.nav-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.getElementById(targetViewId).classList.add('active');
+                button.classList.add('active');
+                
+                // Hide or show bottom nav based on location
+                const bottomNav = document.getElementById('bottom-nav');
+                if (targetViewId === 'play-view') {
+                    bottomNav.style.display = 'flex';
+                } else {
+                    bottomNav.style.display = 'none';
+                }
+            });
+        });
+        
     </script>
 </body>
 </html>
