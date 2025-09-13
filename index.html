@@ -522,6 +522,14 @@
             'explore_mine': {
                 text: 'Задача: Изучи шахты',
                 isComplete: (state) => state.mine.hasExplored,
+                nextQuest: 'collect_crystals'
+            },
+            'collect_crystals': {
+                text: 'Задача: Собери 2 белых кристалла',
+                isComplete: (state) => {
+                    const crystals = state.inventory.find(item => item && item.id === 'white_crystal');
+                    return crystals && crystals.quantity >= 2;
+                },
                 nextQuest: null
             }
         };
@@ -1007,8 +1015,10 @@
                         const noteText = "Записка: Корпорация разрушила всё... они превратили свет в тьму. Источник где-то рядом... я точно знаю. Осталось лишь найти его и вернуть импульс станции. Чистой энергии почти не осталось... и сил тоже...";
                         showModal("Записка", noteText, () => {
                              addToNotes(noteText);
+                             if (gameState.quests.activeQuestId === 'explore_mine') {
+                                 gameState.quests.activeQuestId = 'collect_crystals';
+                             }
                         });
-                        gameState.mine.notePickedUp = true;
                         return false; // Remove note
                     }
                 }
