@@ -1239,6 +1239,7 @@
         
         // Quest system
         const questDisplay = document.getElementById('quest-display');
+        let mineHintShown = false;
         function updateQuestSystem() {
             const activeQuestId = gameState.quests.activeQuestId;
             if (!activeQuestId) {
@@ -1252,6 +1253,12 @@
             if (quest.isComplete(gameState) && !gameState.quests.completed[activeQuestId]) {
                 gameState.quests.completed[activeQuestId] = true;
                 gameState.quests.activeQuestId = quest.nextQuest || null;
+                
+                // Show hint when mine becomes accessible
+                if (activeQuestId === 'examine_inventory' && !mineHintShown) {
+                    showMineHintModal();
+                    mineHintShown = true;
+                }
             }
         }
         
