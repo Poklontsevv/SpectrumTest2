@@ -426,7 +426,8 @@
             [WOOD_BLOCK_ID]: 3,
             [PURE_ENERGY_BLOCK_ID]: 5
         };
-
+        const LOOT_SPAWN_ID = 4;
+        
         // Game parameters
         const TILE_SIZE = 40;
         const MINE_COLS = canvas.width / TILE_SIZE;
@@ -457,7 +458,7 @@
             purifier: { level: 1, efficiency: 0.5 },
             cooler: { level: 1, stability: 1.0 },
             player: { x: 450, y: GROUND_LEVEL - 32, width: 16, height: 32, speed: BASE_PLAYER_SPEED, dx: 0, dy: 0, vy: 0, isGrounded: true, canInteract: false, interactionTarget: null, lives: 3, isInvincible: false, invincibilityTimer: 0, activeHotbarIndex: -1, lastDx: 1, lastDy: 0 },
-            mine: { grid: null, damagedBlocks: {}, chest: { x: 0, y: 0, isOpen: false }, exit: { x: TILE_SIZE, y: TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE * 2 }, ghosts: [], ghostSpawnTimer: 0, hasExplored: false },
+            mine: { grid: null, damagedBlocks: {}, loot: [], chest: { x: 0, y: 0, isOpen: false }, exit: { x: TILE_SIZE, y: TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE * 2 }, ghosts: [], ghostSpawnTimer: 0, hasExplored: false },
             surface: { 
                 mineEntrance: { x: 720, y: GROUND_LEVEL - 80, width: 60, height: 80 },
                 startingChest: { x: 650, y: GROUND_LEVEL - TILE_SIZE, isOpen: false },
@@ -507,7 +508,7 @@
         
         // Function to draw an item on a canvas
         function drawItem(ctx, itemId, x, y, size) {
-             ctx.clearRect(x, y, size, size); ctx.save(); ctx.translate(x, y);
+             ctx.save(); ctx.translate(x, y);
             const s = size / 40;
             const itemInfo = itemId.split('_');
             const itemType = itemInfo[0];
@@ -651,6 +652,7 @@
             if (location === 'mine') {
                 gameState.mine.grid = generateMaze(MINE_COLS, MINE_ROWS);
                 gameState.mine.damagedBlocks = {};
+                gameState.mine.loot = [];
                 gameState.mine.chest.isOpen = false;
                 gameState.mine.ghosts = [];
                 p.x = gameState.mine.exit.x; p.y = gameState.mine.exit.y;
@@ -672,7 +674,7 @@
             const blockId = gameState.mine.grid[facingTile.y][facingTile.x];
             
             // Allow mining only if the block is not a path or an unbreakable wall.
-            if (blockId === 0 || blockId === STONE_BLOCK_ID) return; 
+            if (blockId === 0 || blockId === STONE_BLOCK_ID || blockId === LOOT_SPAWN_ID) return; 
 
             // Use tool.power to mine any minable block
             const tileKey = `${facingTile.x},${facingTile.y}`;
@@ -681,9 +683,10 @@
             tool.durability--;
             if (currentDamage >= BLOCK_HEALTH[blockId]) {
                 if (blockId === PURE_ENERGY_BLOCK_ID) {
-                    gameState.pureEnergy += 25; // Add energy when a pure energy block is mined
+                    gameState.mine.grid[facingTile.y][facingTile.x] = LOOT_SPAWN_ID;
+                } else {
+                    gameState.mine.grid[facingTile.y][facingTile.x] = 0;
                 }
-                gameState.mine.grid[facingTile.y][facingTile.x] = 0;
                 delete gameState.mine.damagedBlocks[tileKey];
             } else {
                 gameState.mine.damagedBlocks[tileKey] = currentDamage;
@@ -804,7 +807,55 @@
             checkInteractionZones(); 
             updateUI();
         }
-        function drawMine() { ctx.clearRect(0,0,800,450); ctx.fillStyle = '#2d2d2d'; ctx.fillRect(0, 0, canvas.width, canvas.height); const grid = gameState.mine.grid; if (!grid) return; for (let y = 0; y < MINE_ROWS; y++) { for (let x = 0; x < MINE_COLS; x++) { if (grid[y][x] === STONE_BLOCK_ID) { ctx.fillStyle = '#6c757d'; ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE); } else if (grid[y][x] === WOOD_BLOCK_ID) { ctx.fillStyle = '#8B4513'; ctx.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE); } else if (grid[y][x] === PURE_ENERGY_BLOCK_ID) { ctx.fillStyle = '#ffffff'; ctx.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE); } const damage = gameState.mine.damagedBlocks[`${x},${y}`]; if (damage) { ctx.fillStyle = `rgba(0,0,0,${0.2 * damage})`; ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE); } } } const chest = gameState.mine.chest; const chestX = chest.x * TILE_SIZE; const chestY = chest.y * TILE_SIZE; ctx.fillStyle = '#8B4513'; ctx.fillRect(chestX + 5, chestY + 15, TILE_SIZE - 10, TILE_SIZE - 20); ctx.fillStyle = '#FFD700'; if (chest.isOpen) { ctx.fillRect(chestX + 3, chestY + 5, TILE_SIZE - 6, 8); }  else { ctx.fillRect(chestX + 5, chestY + 10, TILE_SIZE - 10, 5); } const exit = gameState.mine.exit; ctx.fillStyle = '#212529'; ctx.beginPath(); ctx.moveTo(exit.x, exit.y + exit.height); ctx.quadraticCurveTo(exit.x + exit.width / 2, exit.y - 20, exit.x + exit.width, exit.y + exit.height); ctx.closePath(); ctx.fill(); }
+        function drawMine() { 
+            ctx.clearRect(0,0,800,450); 
+            ctx.fillStyle = '#2d2d2d'; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height); 
+            const grid = gameState.mine.grid; 
+            if (!grid) return; 
+            for (let y = 0; y < MINE_ROWS; y++) { 
+                for (let x = 0; x < MINE_COLS; x++) { 
+                    if (grid[y][x] === STONE_BLOCK_ID) { 
+                        ctx.fillStyle = '#6c757d'; 
+                        ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE); 
+                    } else if (grid[y][x] === WOOD_BLOCK_ID) { 
+                        ctx.fillStyle = '#8B4513'; 
+                        ctx.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE); 
+                    } else if (grid[y][x] === PURE_ENERGY_BLOCK_ID) { 
+                        ctx.fillStyle = '#ffffff'; 
+                        ctx.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE); 
+                    } else if (grid[y][x] === LOOT_SPAWN_ID) {
+                        // Draw loot with a transparent background
+                        ctx.fillStyle = '#2d2d2d';
+                        ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                        drawItem(ctx, 'white_crystal', x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE);
+                    }
+                    const damage = gameState.mine.damagedBlocks[`${x},${y}`]; 
+                    if (damage) { 
+                        ctx.fillStyle = `rgba(0,0,0,${0.2 * damage})`; 
+                        ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE); 
+                    } 
+                } 
+            } 
+            const chest = gameState.mine.chest; 
+            const chestX = chest.x * TILE_SIZE; 
+            const chestY = chest.y * TILE_SIZE; 
+            ctx.fillStyle = '#8B4513'; 
+            ctx.fillRect(chestX + 5, chestY + 15, TILE_SIZE - 10, TILE_SIZE - 20); 
+            ctx.fillStyle = '#FFD700'; 
+            if (chest.isOpen) { 
+                ctx.fillRect(chestX + 3, chestY + 5, TILE_SIZE - 6, 8); 
+            } else { 
+                ctx.fillRect(chestX + 5, chestY + 10, TILE_SIZE - 10, 5); 
+            } 
+            const exit = gameState.mine.exit; 
+            ctx.fillStyle = '#212529'; 
+            ctx.beginPath(); 
+            ctx.moveTo(exit.x, exit.y + exit.height); 
+            ctx.quadraticCurveTo(exit.x + exit.width / 2, exit.y - 20, exit.x + exit.width, exit.y + exit.height); 
+            ctx.closePath(); 
+            ctx.fill(); 
+        }
         
         function findPath(grid, start, end) {
             const queue = [[start]];
@@ -888,6 +939,24 @@
                     }
                 });
             }
+
+            // Check for loot pickup
+            const pRect = { x: gameState.player.x, y: gameState.player.y, width: gameState.player.width, height: gameState.player.height };
+            const lootTiles = [];
+            for(let y = 0; y < MINE_ROWS; y++) {
+                for(let x = 0; x < MINE_COLS; x++) {
+                    if (gameState.mine.grid[y][x] === LOOT_SPAWN_ID) {
+                        lootTiles.push({x, y});
+                    }
+                }
+            }
+            lootTiles.forEach(tile => {
+                const lootRect = { x: tile.x * TILE_SIZE, y: tile.y * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE };
+                if(rectsOverlap(pRect, lootRect)) {
+                    addToInventory('white_crystal', 1);
+                    gameState.mine.grid[tile.y][tile.x] = 0; // Remove loot from the grid
+                }
+            });
         }
         function handlePlayerDeath() {
             gameState.inventory = [];
