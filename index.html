@@ -192,6 +192,15 @@
             text-align: center;
             line-height: 1.8;
         }
+        .modal-hint {
+            background-color: var(--button-bg);
+            border: 2px solid var(--glow-color);
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 20px;
+            color: var(--glow-color);
+            font-size: 10px;
+        }
         
         #lootModal .modal-content {
             max-width: 350px;
@@ -427,7 +436,7 @@
         <button class="nav-btn" data-view="quests-view"><div class="nav-icon"></div>Задания</button>
     </div>
     
-    <div class="modal-overlay" id="genericModal"><div class="modal-content"><h2 id="modalTitle"></h2><p id="modalText"></p><div id="modalLootContainer" style="display: flex; flex-direction: column; gap: 15px; align-items: center; margin-top: 20px;"></div><button id="modalButton" class="action-button">Продолжить</button></div></div>
+    <div class="modal-overlay" id="genericModal"><div class="modal-content"><h2 id="modalTitle"></h2><p id="modalText"></p><div id="modalLootContainer" style="display: flex; flex-direction: column; gap: 15px; align-items: center; margin-top: 20px;"></div><div id="modalHint" class="modal-hint" style="display: none;"></div><button id="modalButton" class="action-button">Продолжить</button></div></div>
     <div class="modal-overlay" id="inventoryModal"><div class="modal-content"><h2>Инвентарь</h2><div id="inventoryGrid"></div><h3>Хотбар</h3><div id="hotbar-modal" class="hotbar-grid"></div><button id="closeInventoryBtn" class="action-button">Закрыть</button></div></div>
     <div class="modal-overlay" id="lootModal"><div class="modal-content"><h2 id="modalTitle">Добыча</h2><div id="lootContainer"></div><button id="closeLootBtn" class="action-button">Забрать</button></div></div>
 
@@ -706,15 +715,50 @@
                 p.x = gameState.mine.exit.x; p.y = gameState.mine.exit.y;
                 
                 if (!gameState.mine.notePickedUp) {
-                    let noteX = Math.floor(p.x / TILE_SIZE);
-                    let noteY = Math.floor(p.y / TILE_SIZE) + 2; 
-                    if (gameState.mine.grid[noteY][noteX] !== 0) {
-                        noteY = Math.floor(p.y / TILE_SIZE) - 2;
+                    const playerTileX = Math.floor(p.x / TILE_SIZE);
+                    const playerTileY = Math.floor(p.y / TILE_SIZE);
+                    let noteX = playerTileX;
+                    let noteY = playerTileY;
+
+                    // Check positions immediately adjacent to the player
+                    const possiblePositions = [
+                        {x: playerTileX + 1, y: playerTileY},
+                        {x: playerTileX - 1, y: playerTileY},
+                        {x: playerTileX, y: playerTileY + 1},
+                        {x: playerTileX, y: playerTileY - 1}
+                    ];
+
+                    let notePlaced = false;
+                    for (const pos of possiblePositions) {
+                        if (pos.x >= 0 && pos.x < MINE_COLS && pos.y >= 0 && pos.y < MINE_ROWS && gameState.mine.grid[pos.y][pos.x] === 0) {
+                            noteX = pos.x;
+                            noteY = pos.y;
+                            gameState.mine.loot.push({x: noteX, y: noteY, id: 'note'});
+                            notePlaced = true;
+                            break;
+                        }
                     }
-                    if (gameState.mine.grid[noteY][noteX] === 0) {
-                        gameState.mine.loot.push({x: noteX, y: noteY, id: 'note'});
-                    } else {
-                        console.error("Не удалось найти место для свитка. Свиток не появился");
+
+                    if (!notePlaced) {
+                         // Fallback to a random spot if no suitable path is found
+                         let fallbackPlaced = false;
+                         const emptyTiles = [];
+                         for(let y = 0; y < MINE_ROWS; y++) {
+                            for(let x = 0; x < MINE_COLS; x++) {
+                                if(gameState.mine.grid[y][x] === 0) {
+                                     emptyTiles.push({x, y});
+                                }
+                            }
+                         }
+                         if (emptyTiles.length > 0) {
+                            const randomPos = emptyTiles[Math.floor(Math.random() * emptyTiles.length)];
+                            gameState.mine.loot.push({x: randomPos.x, y: randomPos.y, id: 'note'});
+                            fallbackPlaced = true;
+                         }
+
+                         if (!fallbackPlaced) {
+                            console.error("Не удалось найти место для свитка. Свиток не появился");
+                         }
                     }
                 }
 
@@ -1013,8 +1057,10 @@
                         return false; // Remove crystal
                     } else if (lootItem.id === 'note') {
                         const noteText = "Записка: Корпорация разрушила всё... они превратили свет в тьму. Источник где-то рядом... я точно знаю. Осталось лишь найти его и вернуть импульс станции. Чистой энергии почти не осталось... и сил тоже...";
-                        showModal("Записка", noteText, () => {
+                        const hintText = "ПОДСКАЗКА: Разбей белые блоки и загляни в сундук";
+                        showModalWithHint("Записка", noteText, hintText, () => {
                              addToNotes(noteText);
+                             gameState.mine.notePickedUp = true; // Set state to prevent future spawns
                              if (gameState.quests.activeQuestId === 'explore_mine') {
                                  gameState.quests.activeQuestId = 'collect_crystals';
                              }
@@ -1033,7 +1079,7 @@
             changeLocation('surface');
             showModal("Поражение!", "Вы были побеждены призраками. Ваш инвентарь утерян.");
         }
-        function handlePlayerMovement() { const p = gameState.player; p.dx = 0; p.dy = 0; if (keys.left.pressed) p.dx = -p.speed; if (keys.right.pressed) p.dx = p.speed; if (p.dx !== 0) p.lastDx = Math.sign(p.dx); if (gameState.currentLocation === 'surface') { if (keys.up.pressed && p.isGrounded) { p.vy = JUMP_STRENGTH; p.isGrounded = false; } } else { if (keys.up.pressed) p.dy = -p.speed; if (keys.down.pressed) p.dy = p.speed; if (p.dy !== 0) p.lastDy = Math.sign(p.dy); if (p.dx !== 0 && p.dy !== 0) { const m = 1/Math.sqrt(2); p.dx *= m; p.dy *= m; } if (p.dx === 0 && p.dy !==0) { p.lastDx = 0; } else if (p.dy === 0 && p.dx !== 0) { p.lastDy = 0; } } }
+        function handlePlayerMovement() { const p = gameState.player; p.dx = 0; p.dy = 0; if (keys.left.pressed) p.dx = -p.speed; if (keys.right.pressed) p.dx = p.speed; if (p.dx !== 0) p.lastDx = Math.sign(p.dx); if (gameState.currentLocation === 'surface') { if (keys.up.pressed && p.isGrounded) { p.vy = JUMP_STRENGTH; p.isGrounded = false; } } else { if (keys.up.pressed) p.dy = -p.speed; if (keys.down.pressed) p.dy = p.speed; if (p.dy !== 0) p.lastDy = Math.sign(p.dy); if (p.dx === 0 && p.dy !==0) { p.lastDx = 0; } else if (p.dy === 0 && p.dx !== 0) { p.lastDy = 0; } } }
         function applyPhysics() { const p = gameState.player; if (gameState.currentLocation === 'surface') { p.vy += GRAVITY; p.x += p.dx; let nY = p.y + p.vy; if (nY + p.height >= GROUND_LEVEL) { nY = GROUND_LEVEL - p.height; p.vy = 0; p.isGrounded = true; } else { p.isGrounded = false; } p.y = nY; } else { p.isGrounded = true; p.vy = 0; let nX = p.x + p.dx; let nY = p.y + p.dy; const grid = gameState.mine.grid; if (!checkWallCollision(nX, nY, p.width, p.height, grid)) { p.x = nX; p.y = nY; } else { if (!checkWallCollision(nX, p.y, p.width, p.height, grid)) { p.x = nX; } if (!checkWallCollision(p.x, nY, p.width, p.height, grid)) { p.y = nY; } } } if (p.x < 0) p.x = 0; if (p.x + p.width > canvas.width) p.x = canvas.width - p.width; if (p.y < 0) p.y = 0; if (p.y + p.height > canvas.height) p.y = canvas.height - p.height; }
         function checkWallCollision(x,y,w,h,g){if(!g)return!1;const lT=Math.floor(x/TILE_SIZE),rT=Math.floor((x+w)/TILE_SIZE),tT=Math.floor(y/TILE_SIZE),bT=Math.floor((y+h)/TILE_SIZE);for(let row=tT;row<=bT;row++){for(let col=lT;col<=rT;col++){if(row<0||row>=MINE_ROWS||col<0||col>=MINE_COLS||g[row][col]===STONE_BLOCK_ID||g[row][col]===WOOD_BLOCK_ID||g[row][col]===PURE_ENERGY_BLOCK_ID)return!0}}return!1}
         function rectsOverlap(r1, r2) { return r1.x < r2.x + r2.width && r1.x + r1.width > r2.x && r1.y < r2.y + r2.height && r1.y + r1.height > r2.y; }
@@ -1090,6 +1136,20 @@
         
         function showMineHintModal() {
             showModal("ПОДСКАЗКА", "Теперь изучи глубины шахт. Там ты сможешь добыть ресурсы, необходимые для восстановления энергостанции. И будь осторожен - в шахтах может быть опасно.");
+        }
+        
+        function showModalWithHint(title, text, hintText, callback) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalText').textContent = text;
+            document.getElementById('modalHint').textContent = hintText;
+            document.getElementById('modalHint').style.display = 'block';
+            document.getElementById('genericModal').classList.add('visible');
+            const button = document.getElementById('modalButton');
+            button.onclick = () => { 
+                document.getElementById('modalHint').style.display = 'none'; // Hide hint on close
+                document.getElementById('genericModal').classList.remove('visible'); 
+                if (callback) callback(); 
+            };
         }
 
         function drawPlayer() { 
@@ -1208,11 +1268,15 @@
         
         // Modal and UI functions
         const genericModal = document.getElementById('genericModal');
+        const modalHintElement = document.getElementById('modalHint');
+
         function showModal(title, text, callback, loot = []) {
             genericModal.querySelector('#modalTitle').textContent = title;
             genericModal.querySelector('#modalText').textContent = text;
             const modalLootContainer = document.getElementById('modalLootContainer');
             modalLootContainer.innerHTML = '';
+            modalHintElement.style.display = 'none';
+
             if(loot.length > 0) {
                 loot.forEach(item => {
                     const lootItemDiv = document.createElement('div');
@@ -1438,7 +1502,21 @@
             // Initialize inventory and hotbar
             gameState.inventory = Array(INVENTORY_SIZE).fill(null);
             gameState.hotbar = Array(HOTBAR_SIZE).fill(null);
-            showModal("Мир был разбит...", "Корпорация высосала спектральную энергию людей... тьма породила призрачные тени... Ты - Избранный и твоя задача - очистить мир и возродить источник чистой энергии.", gameLoop);
+            showModalWithHint("Мир был разбит...", "Корпорация высосала спектральную энергию людей... тьма породила призрачные тени... Ты - Избранный и твоя задача - очистить мир и возродить источник чистой энергии.", "ПОДСКАДКА: Найди руины", gameLoop);
+        }
+        
+        function showModalWithHint(title, text, hintText, callback) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalText').textContent = text;
+            document.getElementById('modalHint').textContent = hintText;
+            document.getElementById('modalHint').style.display = 'block';
+            document.getElementById('genericModal').classList.add('visible');
+            const button = document.getElementById('modalButton');
+            button.onclick = () => { 
+                document.getElementById('modalHint').style.display = 'none'; // Hide hint on close
+                document.getElementById('genericModal').classList.remove('visible'); 
+                if (callback) callback(); 
+            };
         }
 
         init();
