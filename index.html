@@ -1286,14 +1286,6 @@
                 });
                 document.getElementById(targetViewId).classList.add('active');
                 button.classList.add('active');
-                
-                // Hide or show bottom nav based on location
-                const bottomNav = document.getElementById('bottom-nav');
-                if (targetViewId === 'play-view') {
-                    bottomNav.style.display = 'flex';
-                } else {
-                    bottomNav.style.display = 'none';
-                }
             });
         });
         
