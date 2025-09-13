@@ -196,6 +196,33 @@
         #lootModal .modal-content {
             max-width: 350px;
         }
+        #notes-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+            max-width: 500px;
+            padding: 10px;
+            box-sizing: border-box;
+            background-color: rgba(0,0,0,0.3);
+            border-radius: 5px;
+            height: 400px;
+            overflow-y: auto;
+        }
+        .note-item {
+            background-color: var(--button-bg);
+            border: 2px solid var(--border-color);
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 10px;
+            line-height: 1.5;
+            text-align: left;
+        }
+        .note-item h4 {
+            font-size: 12px;
+            margin: 0;
+            color: var(--glow-color);
+        }
 
         #inventoryGrid {
             display: grid;
@@ -453,12 +480,13 @@
             pureEnergy: 0,
             inventory: [],
             hotbar: [],
+            notes: [],
             storage: { level: 1, capacity: 100 },
             collector: { level: 1, rate: 0.1 },
             purifier: { level: 1, efficiency: 0.5 },
             cooler: { level: 1, stability: 1.0 },
             player: { x: 450, y: GROUND_LEVEL - 32, width: 16, height: 32, speed: BASE_PLAYER_SPEED, dx: 0, dy: 0, vy: 0, isGrounded: true, canInteract: false, interactionTarget: null, lives: 3, isInvincible: false, invincibilityTimer: 0, activeHotbarIndex: -1, lastDx: 1, lastDy: 0 },
-            mine: { grid: null, damagedBlocks: {}, loot: [], chest: { x: 0, y: 0, isOpen: false }, exit: { x: TILE_SIZE, y: TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE * 2 }, ghosts: [], ghostSpawnTimer: 0, hasExplored: false },
+            mine: { grid: null, damagedBlocks: {}, loot: [], chest: { x: 0, y: 0, isOpen: false }, exit: { x: TILE_SIZE, y: TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE * 2 }, ghosts: [], ghostSpawnTimer: 0, hasExplored: false, notePickedUp: false },
             surface: { 
                 mineEntrance: { x: 720, y: GROUND_LEVEL - 80, width: 60, height: 80 },
                 startingChest: { x: 650, y: GROUND_LEVEL - TILE_SIZE, isOpen: false },
@@ -525,10 +553,22 @@
                  ctx.moveTo(20*s, 5*s); ctx.lineTo(35*s, 20*s); ctx.lineTo(20*s, 35*s); ctx.lineTo(5*s, 20*s);
                  ctx.closePath(); ctx.fill();
             } else if (itemId === 'note') {
-                ctx.fillStyle = '#f0e68c';
-                ctx.fillRect(10*s, 5*s, 20*s, 30*s);
-                ctx.fillStyle = '#d2b48c'; 
-                ctx.fillRect(12*s, 7*s, 16*s, 26*s);
+                ctx.fillStyle = '#d2b48c'; // Main scroll color
+                ctx.fillRect(5*s, 5*s, 30*s, 30*s);
+                ctx.fillStyle = '#8B4513'; // Ribbon color
+                ctx.beginPath();
+                ctx.moveTo(15*s, 5*s);
+                ctx.lineTo(25*s, 5*s);
+                ctx.lineTo(25*s, 15*s);
+                ctx.lineTo(15*s, 15*s);
+                ctx.closePath();
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(25*s, 10*s);
+                ctx.lineTo(35*s, 15*s);
+                ctx.lineTo(30*s, 25*s);
+                ctx.closePath();
+                ctx.fill();
             }
              ctx.restore();
         }
@@ -656,6 +696,20 @@
                 gameState.mine.chest.isOpen = false;
                 gameState.mine.ghosts = [];
                 p.x = gameState.mine.exit.x; p.y = gameState.mine.exit.y;
+                
+                if (!gameState.mine.notePickedUp) {
+                    let noteX = Math.floor(p.x / TILE_SIZE);
+                    let noteY = Math.floor(p.y / TILE_SIZE) + 2; 
+                    if (gameState.mine.grid[noteY][noteX] !== 0) {
+                        noteY = Math.floor(p.y / TILE_SIZE) - 2;
+                    }
+                    if (gameState.mine.grid[noteY][noteX] === 0) {
+                        gameState.mine.loot.push({x: noteX, y: noteY, id: 'note'});
+                    } else {
+                        console.error("Не удалось найти место для свитка. Свиток не появился");
+                    }
+                }
+
                 updateHotbarUI(); // Обновляем хотбар при смене локации
             } else {
                  p.x = gameState.surface.mineEntrance.x; p.y = GROUND_LEVEL - p.height;
@@ -683,7 +737,8 @@
             tool.durability--;
             if (currentDamage >= BLOCK_HEALTH[blockId]) {
                 if (blockId === PURE_ENERGY_BLOCK_ID) {
-                    gameState.mine.grid[facingTile.y][facingTile.x] = LOOT_SPAWN_ID;
+                    gameState.mine.grid[facingTile.y][facingTile.x] = 0;
+                    gameState.mine.loot.push({ x: facingTile.x, y: facingTile.y, id: 'white_crystal' });
                 } else {
                     gameState.mine.grid[facingTile.y][facingTile.x] = 0;
                 }
@@ -824,11 +879,6 @@
                     } else if (grid[y][x] === PURE_ENERGY_BLOCK_ID) { 
                         ctx.fillStyle = '#ffffff'; 
                         ctx.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE); 
-                    } else if (grid[y][x] === LOOT_SPAWN_ID) {
-                        // Draw loot with a transparent background
-                        ctx.fillStyle = '#2d2d2d';
-                        ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-                        drawItem(ctx, 'white_crystal', x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE);
                     }
                     const damage = gameState.mine.damagedBlocks[`${x},${y}`]; 
                     if (damage) { 
@@ -837,6 +887,11 @@
                     } 
                 } 
             } 
+            // Draw loot items on top of the grid
+            gameState.mine.loot.forEach(lootItem => {
+                drawItem(ctx, lootItem.id, lootItem.x * TILE_SIZE, lootItem.y * TILE_SIZE, TILE_SIZE);
+            });
+            
             const chest = gameState.mine.chest; 
             const chestX = chest.x * TILE_SIZE; 
             const chestY = chest.y * TILE_SIZE; 
@@ -942,20 +997,22 @@
 
             // Check for loot pickup
             const pRect = { x: gameState.player.x, y: gameState.player.y, width: gameState.player.width, height: gameState.player.height };
-            const lootTiles = [];
-            for(let y = 0; y < MINE_ROWS; y++) {
-                for(let x = 0; x < MINE_COLS; x++) {
-                    if (gameState.mine.grid[y][x] === LOOT_SPAWN_ID) {
-                        lootTiles.push({x, y});
+            gameState.mine.loot = gameState.mine.loot.filter(lootItem => {
+                const lootRect = { x: lootItem.x * TILE_SIZE, y: lootItem.y * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE };
+                if (rectsOverlap(pRect, lootRect)) {
+                    if (lootItem.id === 'white_crystal') {
+                        addToInventory('white_crystal', 1);
+                        return false; // Remove crystal
+                    } else if (lootItem.id === 'note') {
+                        const noteText = "Записка: Корпорация разрушила всё... они превратили свет в тьму. Источник где-то рядом... я точно знаю. Осталось лишь найти его и вернуть импульс станции. Чистой энергии почти не осталось... и сил тоже...";
+                        showModal("Записка", noteText, () => {
+                             addToNotes(noteText);
+                        });
+                        gameState.mine.notePickedUp = true;
+                        return false; // Remove note
                     }
                 }
-            }
-            lootTiles.forEach(tile => {
-                const lootRect = { x: tile.x * TILE_SIZE, y: tile.y * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE };
-                if(rectsOverlap(pRect, lootRect)) {
-                    addToInventory('white_crystal', 1);
-                    gameState.mine.grid[tile.y][tile.x] = 0; // Remove loot from the grid
-                }
+                return true; // Keep loot
             });
         }
         function handlePlayerDeath() {
@@ -974,7 +1031,7 @@
 
         function addToInventory(itemId, quantity) { 
             const itemDef = ITEMS[itemId];
-            if (itemDef.type === 'resource' || itemDef.type === 'quest') {
+            if (itemDef.type === 'resource') {
                 const existing = gameState.inventory.find(i => i && i.id === itemId);
                 if (existing) {
                     existing.quantity += quantity;
@@ -998,6 +1055,11 @@
                 }
             }
         }
+        function addToNotes(noteContent) {
+            gameState.notes.push({ id: 'note', content: noteContent });
+            updateNotesView();
+        }
+
         function generateLoot() { const loot = []; const roll = Math.random(); if (roll < 0.10) { loot.push({ id: 'metal_pickaxe', quantity: 1 }); } else if (roll < 0.40) { loot.push({ id: 'wooden_pickaxe', quantity: 1 }); } let crystals = 1; if (Math.random() < 0.50) crystals++; if (Math.random() < 0.20) crystals++; if (Math.random() < 0.01) crystals = 10; loot.push({ id: 'white_crystal', quantity: crystals }); return loot; }
         function openChest() { if (gameState.mine.chest.isOpen) return; gameState.mine.chest.isOpen = true; const loot = generateLoot(); loot.forEach(item => addToInventory(item.id, item.quantity)); showLootScreen(loot); }
         function openStartingChest() { 
@@ -1005,18 +1067,11 @@
             if (chest.isOpen) return; 
             chest.isOpen = true; 
             addToInventory('wooden_pickaxe', 1); 
-            addToInventory('note', 1); 
             
-            // Set new quest
-            const activeQuestId = gameState.quests.activeQuestId;
-            if (activeQuestId === 'find_pickaxe') {
-                 gameState.quests.completed[activeQuestId] = true;
-                 gameState.quests.activeQuestId = QUESTS[activeQuestId].nextQuest;
-            }
-
             const noteText = "Без кирки в шахту не суйся. Деревянная сгодится, но надолго её не хватит. В сундуках найдёшь получше — береги их, они откроют дорогу к глубинным кристаллам"; 
             const lootForDisplay = [{ id: 'wooden_pickaxe', quantity: 1 }]; 
             showModal("Вы нашли записку!", noteText, showInventoryHintModal, lootForDisplay); 
+            addToNotes(noteText);
         }
 
         function showInventoryHintModal() {
@@ -1323,6 +1378,17 @@
         }
         document.getElementById('closeLootBtn').onclick = () => lootModal.classList.remove('visible');
         
+        function updateNotesView() {
+            const notesList = document.getElementById('notes-list');
+            notesList.innerHTML = '';
+            gameState.notes.forEach((note, index) => {
+                const noteDiv = document.createElement('div');
+                noteDiv.className = 'note-item';
+                noteDiv.innerHTML = `<h4>Записка #${index + 1}</h4><p>${note.content}</p>`;
+                notesList.appendChild(noteDiv);
+            });
+        }
+        
         // Quest system
         const questDisplay = document.getElementById('quest-display');
         let mineHintShown = false;
@@ -1379,6 +1445,10 @@
                 });
                 document.getElementById(targetViewId).classList.add('active');
                 button.classList.add('active');
+
+                if (targetViewId === 'notes-view') {
+                    updateNotesView();
+                }
             });
         });
         
