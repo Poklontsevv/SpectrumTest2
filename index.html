@@ -503,6 +503,7 @@
             },
             stationRepaired: false,
             stationInspected: false,
+            crystalsCollected: 0,
             quests: {
                 activeQuestId: 'find_ruins',
                 completed: {}
@@ -888,14 +889,17 @@
                 }
             }
             
-            // Add pure energy blocks
-            let energyBlocksPlaced = 0;
-            while(energyBlocksPlaced < 2) {
-                const x = 1 + Math.floor(Math.random() * (cols - 2));
-                const y = 1 + Math.floor(Math.random() * (rows - 2));
-                if (grid[y][x] === STONE_BLOCK_ID && (x !== farthest.x || y !== farthest.y)) {
-                    grid[y][x] = PURE_ENERGY_BLOCK_ID;
-                    energyBlocksPlaced++;
+            // Add pure energy blocks based on how many have been collected
+            let crystalsToSpawn = 2 - gameState.crystalsCollected;
+            if (crystalsToSpawn > 0) {
+                let energyBlocksPlaced = 0;
+                while(energyBlocksPlaced < crystalsToSpawn) {
+                    const x = 1 + Math.floor(Math.random() * (cols - 2));
+                    const y = 1 + Math.floor(Math.random() * (rows - 2));
+                    if (grid[y][x] === STONE_BLOCK_ID && (x !== farthest.x || y !== farthest.y)) {
+                        grid[y][x] = PURE_ENERGY_BLOCK_ID;
+                        energyBlocksPlaced++;
+                    }
                 }
             }
 
@@ -1054,6 +1058,7 @@
                 if (rectsOverlap(pRect, lootRect)) {
                     if (lootItem.id === 'white_crystal') {
                         addToInventory('white_crystal', 1);
+                        gameState.crystalsCollected++; 
                         return false; // Remove crystal
                     } else if (lootItem.id === 'note') {
                         const noteText = "Записка: Корпорация разрушила всё... они превратили свет в тьму. Источник где-то рядом... я точно знаю. Осталось лишь найти его и вернуть импульс станции. Чистой энергии почти не осталось... и сил тоже...";
