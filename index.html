@@ -197,7 +197,8 @@
             border: 2px solid var(--glow-color);
             border-radius: 8px;
             padding: 10px;
-            margin-top: 20px;
+            margin-top: 10px; 
+            margin-bottom: 20px;
             color: var(--glow-color);
             font-size: 10px;
         }
@@ -334,6 +335,17 @@
             bottom: 0;
             left: 0;
         }
+        .nav-btn.active {
+            color: var(--glow-color);
+            border-bottom: 3px solid var(--glow-color);
+        }
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            background-color: var(--button-bg);
+            border-radius: 50%;
+            border: 1px solid var(--border-color);
+        }
         .nav-btn {
             background: none;
             border: none;
@@ -352,12 +364,13 @@
             color: var(--glow-color);
             border-bottom: 3px solid var(--glow-color);
         }
-        .nav-icon {
-            width: 24px;
-            height: 24px;
-            background-color: var(--button-bg);
-            border-radius: 50%;
-            border: 1px solid var(--border-color);
+        
+        /* New styles for hotbar grid to support 5 items */
+        #hotbar-ui .hotbar-grid,
+        #hotbar-ui-mine .hotbar-grid,
+        #hotbar-modal .hotbar-grid {
+            grid-template-columns: repeat(5, 1fr);
+            gap: 5px;
         }
 
         @media (max-width: 820px) and (orientation: portrait) {
@@ -392,6 +405,8 @@
                                 <div class="inventory-slot" data-slot="0"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
                                 <div class="inventory-slot" data-slot="1"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
                                 <div class="inventory-slot" data-slot="2"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
+                                <div class="inventory-slot" data-slot="3"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
+                                <div class="inventory-slot" data-slot="4"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
                             </div>
                         </div>
                     </div>
@@ -410,6 +425,8 @@
                             <div class="inventory-slot" data-slot="0"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
                             <div class="inventory-slot" data-slot="1"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
                             <div class="inventory-slot" data-slot="2"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
+                            <div class="inventory-slot" data-slot="3"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
+                            <div class="inventory-slot" data-slot="4"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
                         </div>
                         <button class="action-button" id="mineInventoryBtn">ИНВЕНТАРЬ</button>
                     </div>
@@ -473,7 +490,7 @@
         const GROUND_LEVEL = 350;
         const INVINCIBILITY_DURATION = 120;
         const INVENTORY_SIZE = 20;
-        const HOTBAR_SIZE = 3;
+        const HOTBAR_SIZE = 5;
 
         // Base speeds for different screen sizes
         const BASE_PLAYER_SPEED = 3;
@@ -601,6 +618,11 @@
                 case 'w': case 'arrowup': keys.up.pressed = true; break;
                 case 's': case 'arrowdown': keys.down.pressed = true; break;
                 case 'enter': handleInteraction(); break;
+                case '1': gameState.player.activeHotbarIndex = 0; break;
+                case '2': gameState.player.activeHotbarIndex = 1; break;
+                case '3': gameState.player.activeHotbarIndex = 2; break;
+                case '4': gameState.player.activeHotbarIndex = 3; break;
+                case '5': gameState.player.activeHotbarIndex = 4; break;
             }
         });
         window.addEventListener('keyup', (e) => {
@@ -889,8 +911,9 @@
                 }
             }
             
-            // Add pure energy blocks based on how many have been collected
-            let crystalsToSpawn = 2 - gameState.crystalsCollected;
+            // Add pure energy blocks only if crystals haven't been collected yet
+            let crystalsInInventory = gameState.inventory.filter(item => item && item.id === 'white_crystal').reduce((sum, item) => sum + item.quantity, 0);
+            let crystalsToSpawn = 2 - crystalsInInventory;
             if (crystalsToSpawn > 0) {
                 let energyBlocksPlaced = 0;
                 while(energyBlocksPlaced < crystalsToSpawn) {
@@ -1127,7 +1150,11 @@
             const chest = gameState.surface.startingChest; 
             if (chest.isOpen) return; 
             chest.isOpen = true; 
-            addToInventory('wooden_pickaxe', 1); 
+            
+            // Add pickaxe and automatically move it to hotbar
+            const pickaxe = { id: 'wooden_pickaxe', durability: ITEMS['wooden_pickaxe'].maxDurability };
+            gameState.hotbar[0] = pickaxe;
+            gameState.player.activeHotbarIndex = 0;
             
             const noteText = "Без кирки в шахту не суйся. Деревянная сгодится, но надолго её не хватит. В сундуках найдёшь получше — береги их, они откроют дорогу к глубинным кристаллам"; 
             const lootForDisplay = [{ id: 'wooden_pickaxe', quantity: 1 }]; 
@@ -1346,7 +1373,8 @@
                 const item = gameState.hotbar[i];
                 const slotModal = document.createElement('div');
                 slotModal.className = 'inventory-slot hotbar-slot';
-                slotModal.dataset.hotbarIndex = i;
+                slotModal.dataset.index = i;
+                slotModal.dataset.type = 'hotbar';
                 if (i === gameState.player.activeHotbarIndex) slotModal.classList.add('active');
                 const canvasModal = document.createElement('canvas');
                 canvasModal.width = canvasModal.height = 40;
@@ -1364,60 +1392,122 @@
             }
         }
 
+        let selectedSlot = null;
+
+        function clearSelectedSlot() {
+            if (selectedSlot) {
+                const elements = document.querySelectorAll('.inventory-slot');
+                elements.forEach(el => {
+                    const elType = el.dataset.type;
+                    const elIndex = parseInt(el.dataset.index);
+                    if (elType === selectedSlot.type && elIndex === selectedSlot.index) {
+                        el.classList.remove('active');
+                    }
+                });
+                selectedSlot = null;
+            }
+        }
+        
+        function handleSlotClick(e) {
+            const targetSlot = e.currentTarget;
+            const targetType = targetSlot.dataset.type;
+            const targetIndex = parseInt(targetSlot.dataset.index);
+
+            const targetArray = (targetType === 'inventory') ? gameState.inventory : gameState.hotbar;
+            const targetItem = targetArray[targetIndex];
+
+            // If an item is already selected
+            if (selectedSlot) {
+                // If the user clicks the same slot again, deselect it.
+                if (selectedSlot.type === targetType && selectedSlot.index === targetIndex) {
+                    clearSelectedSlot();
+                    openInventory();
+                    return;
+                }
+
+                const fromType = selectedSlot.type;
+                const fromIndex = parseInt(selectedSlot.index);
+                const fromArray = (fromType === 'inventory') ? gameState.inventory : gameState.hotbar;
+                const fromItem = fromArray[fromIndex];
+
+                // Check for invalid moves to hotbar (only tools allowed)
+                if (targetType === 'hotbar' && fromItem && ITEMS[fromItem.id].type !== 'tool') {
+                    // It's an invalid move, so just deselect and return
+                    clearSelectedSlot();
+                    openInventory();
+                    return;
+                }
+
+                // Perform the swap
+                const tempItem = targetArray[targetIndex];
+                targetArray[targetIndex] = fromItem;
+                fromArray[fromIndex] = tempItem;
+
+                // Update the active hotbar index if a hotbar slot was involved
+                if (fromType === 'hotbar' || targetType === 'hotbar') {
+                    const activeToolIndex = gameState.hotbar.findIndex(item => item && ITEMS[item.id].type === 'tool');
+                    gameState.player.activeHotbarIndex = activeToolIndex;
+                }
+
+                // Clear the selection and re-render the UI
+                clearSelectedSlot();
+                openInventory();
+            } else {
+                // No item selected, so select the one that was clicked
+                if (targetItem) {
+                    selectedSlot = { type: targetType, index: targetIndex };
+                    targetSlot.classList.add('active');
+                }
+            }
+        }
+
+
         function openInventory() {
             inventoryGrid.innerHTML = '';
-            // Render main inventory
             for (let i = 0; i < INVENTORY_SIZE; i++) {
                 const item = gameState.inventory[i];
-                const slot = document.createElement('div');
-                slot.className = 'inventory-slot';
-                slot.dataset.inventoryIndex = i;
-                const canvas = document.createElement('canvas');
-                canvas.width = canvas.height = 40;
-                slot.appendChild(canvas);
-                const count = document.createElement('div');
-                count.className = 'item-count';
-                slot.appendChild(count);
-
-                if (item) {
-                    drawItem(canvas.getContext('2d'), item.id, 0, 0, 40);
-                    count.textContent = item.quantity || item.durability;
-                }
+                const slot = createInventorySlot(item, i, 'inventory');
                 inventoryGrid.appendChild(slot);
             }
 
-            // Render hotbar
+            hotbarModal.innerHTML = '';
+            for (let i = 0; i < HOTBAR_SIZE; i++) {
+                const item = gameState.hotbar[i];
+                const slot = createInventorySlot(item, i, 'hotbar');
+                hotbarModal.appendChild(slot);
+            }
             updateHotbarUI();
-            
-            // Add click listeners
-            inventoryGrid.querySelectorAll('.inventory-slot').forEach(slot => {
-                slot.addEventListener('click', (e) => {
-                    const index = parseInt(e.currentTarget.dataset.inventoryIndex);
-                    const item = gameState.inventory[index];
-                    if (item && ITEMS[item.id].type === 'tool') {
-                        const emptyHotbarSlot = gameState.hotbar.findIndex(i => !i);
-                        if (emptyHotbarSlot !== -1) {
-                            gameState.hotbar[emptyHotbarSlot] = item;
-                            gameState.inventory[index] = null;
-                            gameState.player.activeHotbarIndex = emptyHotbarSlot;
-                            openInventory(); // Re-render to show changes
-                        }
-                    }
-                });
-            });
-
-            hotbarModal.querySelectorAll('.inventory-slot').forEach(slot => {
-                slot.addEventListener('click', (e) => {
-                    const index = parseInt(e.currentTarget.dataset.hotbarIndex);
-                    const item = gameState.hotbar[index];
-                    if (item) {
-                        gameState.player.activeHotbarIndex = index;
-                        openInventory(); // Re-render to show changes
-                    }
-                });
-            });
-
             inventoryModal.classList.add('visible');
+        }
+
+        function createInventorySlot(item, index, type) {
+            const slot = document.createElement('div');
+            slot.className = 'inventory-slot';
+            slot.dataset.index = index;
+            slot.dataset.type = type;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = canvas.height = 40;
+            slot.appendChild(canvas);
+            const count = document.createElement('div');
+            count.className = 'item-count';
+            slot.appendChild(count);
+
+            if (item) {
+                drawItem(canvas.getContext('2d'), item.id, 0, 0, 40);
+                count.textContent = item.quantity ? `x${item.quantity}` : `${item.durability}/${ITEMS[item.id].maxDurability}`;
+            }
+
+            slot.addEventListener('click', handleSlotClick);
+            
+            // Re-apply active class for visual state after re-rendering
+            if (selectedSlot && selectedSlot.type === type && parseInt(selectedSlot.index) === index) {
+                slot.classList.add('active');
+            } else if (type === 'hotbar' && index === gameState.player.activeHotbarIndex) {
+                slot.classList.add('active');
+            }
+
+            return slot;
         }
 
         document.getElementById('inventoryBtn').onclick = openInventory;
