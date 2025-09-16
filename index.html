@@ -26,26 +26,22 @@
             overflow: hidden;
             background-color: var(--primary-bg);
         }
-        
+
         body {
             color: var(--text-color);
             font-family: var(--font-pixel);
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            align-items: center;
         }
         
         #main-content {
-            flex-grow: 1;
+            flex-grow = 1;
             display: flex;
             flex-direction: column;
             width: 100%;
-            height: 100%;
             align-items: center;
             overflow: hidden;
-            max-width: 600px; /* Limit width for vertical layout */
-            position: relative;
         }
 
         .view {
@@ -73,262 +69,113 @@
         
         #top-hud {
             width: 100%;
-            padding: 10px 15px;
+            background-color: var(--ui-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 5px 15px;
             box-sizing: border-box;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
-            position: absolute;
-            top: 0;
-            z-index: 10;
+            margin-bottom: 5px;
         }
 
-        .top-left-cluster {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 5px;
-        }
-        .hp-container {
-            font-size: clamp(16px, 4vw, 24px);
+        #top-life-container {
+            font-size: 24px;
             color: #ff4757;
-        }
-        .shield-container {
-             font-size: clamp(16px, 4vw, 24px);
-             color: #00ffff;
-        }
-
-        #quest-display {
-            font-size: clamp(8px, 2.5vw, 12px);
-            text-align: center;
-            max-width: 50%;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .top-right-cluster {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 5px;
-        }
-        .resource-cluster {
-            display: flex;
-            gap: 5px;
-        }
-        .resource-item {
-            display: flex;
-            align-items: center;
-            gap: 2px;
-            font-size: clamp(8px, 2.5vw, 12px);
-        }
-        .energy-display {
-            font-size: clamp(8px, 2.5vw, 12px);
-            color: var(--glow-color);
+            letter-spacing: 2px;
         }
 
         .game-wrapper {
             position: relative;
             width: 100%;
-            height: 70vh; /* Adjust game area height */
-            margin-top: -10vh; /* Move it up to fill the screen */
+            aspect-ratio: 800 / 450;
         }
-        
-        #gameCanvas {
-            border: none;
-            border-radius: 0;
+
+        canvas {
+            background-color: #000;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            width: 100%;
+            height: 100%;
             image-rendering: pixelated;
         }
 
-        .ui-panel {
-            width: 100%;
-            background-color: var(--ui-bg);
-            border-top: 2px solid var(--border-color);
-            padding: 12px;
-            box-sizing: border-box;
-            user-select: none;
+        #quest-display {
             position: absolute;
-            bottom: 0;
-            z-index: 10;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        #station-bottom-sheet {
-            display: none;
-            width: 100%;
-            background-color: var(--ui-bg);
-            border-top: 2px solid var(--border-color);
-            padding: 10px;
-            box-sizing: border-box;
-            flex-direction: column;
-            gap: 10px;
-            position: absolute;
-            bottom: 15vh;
-            z-index: 9;
-        }
-        .station-header {
-            font-size: 14px;
-            color: var(--glow-color);
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 5px;
+            font-size: 10px;
             text-align: center;
-            margin-bottom: 5px;
+            pointer-events: none;
+            z-index: 10;
+            white-space: nowrap;
         }
 
-        .station-metrics {
-            display: flex;
-            justify-content: space-around;
-            font-size: 10px;
+        .ui-panel, #mine-hud {
+            width: 100%;
+            background-color: var(--ui-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 15px;
+            box-sizing: border-box;
+            user-select: none;
+            flex-shrink: 0;
         }
-        .upgrade-grid {
+
+        .ui-panel {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
         }
-         .upgrade-button {
-            background-color: var(--button-bg);
-            border: 2px solid var(--border-color);
-            color: var(--text-color);
-            padding: 10px;
-            font-family: var(--font-pixel);
-            font-size: 8px; /* Smaller font for better fit */
-            cursor: pointer;
-            transition: background-color 0.2s;
-            border-radius: 5px;
-            text-align: left;
+        .ui-panel.ruined-mode {
+            grid-template-columns: 1fr;
         }
-        .upgrade-button:hover { background-color: var(--button-hover-bg); }
-        .upgrade-button:disabled { cursor: not-allowed; background-color: var(--button-disabled-bg); }
-
-        .cost { display: block; font-size: 8px; color: #94a3b8; margin-top: 5px; }
-        .level { float: right; }
-        
-        .bottom-action-bar {
-            width: 100%;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            padding: 5px 0;
+         .ui-panel.ruined-mode .upgrade-panel {
+            display: none;
         }
         
-        #hotbar-ui {
-            display: flex;
-            gap: 5px;
-        }
-        .inventory-slot {
-            width: 50px; height: 50px; background-color: var(--button-bg); border: 2px solid var(--border-color);
-            border-radius: 5px; position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer;
-        }
-        .inventory-slot.active { border-color: var(--glow-color); box-shadow: 0 0 10px var(--glow-color); }
-        .inventory-slot canvas { width: 30px; height: 30px; background: none; border: none; }
-        .item-count {
-            position: absolute; bottom: 2px; right: 4px; font-size: 10px; color: white; text-shadow: 1px 1px 2px black;
-        }
-        .tool-durability-bar {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            height: 4px;
-            background-color: #ff4757;
-            width: 100%;
-            border-radius: 0 0 5px 5px;
-        }
-        
-        #control-buttons {
+        .resource-panel, .upgrade-panel {
             display: flex;
             flex-direction: column;
+            gap: 10px;
+        }
+
+        .resource-display { font-size: 12px; text-shadow: 0 0 5px var(--glow-color); }
+        .hidden-stats {
+            display: none;
+        }
+        
+        .player-stats { display: flex; align-items: center; gap: 15px; margin-top: 5px; }
+        .hotbar-container {
+            display: flex;
             gap: 5px;
             align-items: center;
         }
+
         .action-button {
-            background-color: var(--button-bg);
-            border: 2px solid var(--border-color);
-            color: var(--text-color);
-            padding: 10px;
-            font-family: var(--font-pixel);
-            font-size: 10px;
-            cursor: pointer;
-            border-radius: 5px;
-            text-align: center;
-            min-width: 48px;
-            min-height: 48px;
+             background-color: var(--button-bg);
+            border: 2px solid var(--border-color); color: var(--text-color); padding: 10px;
+            font-family: var(--font-pixel); font-size: 10px; cursor: pointer; border-radius: 5px; text-align: center;
         }
         .action-button:hover { background-color: var(--button-hover-bg); }
         .action-button:disabled { cursor: not-allowed; background-color: var(--button-disabled-bg); }
 
-        #jump-button {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            font-size: 18px;
+        .upgrade-button {
+            background-color: var(--button-bg); border: 2px solid var(--border-color); color: var(--text-color);
+            padding: 10px; font-family: var(--font-pixel); font-size: 10px; cursor: pointer;
+            transition: background-color 0.2s; border-radius: 5px; text-align: left;
         }
-
-        /* Side Panels */
-        .side-panel {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            z-index: 20;
-            transition: transform 0.3s ease-in-out;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            padding: 8px;
-            background-color: var(--ui-bg);
-            border: 2px solid var(--border-color);
-            border-radius: 0 8px 8px 0;
-        }
-
-        #left-panel {
-            left: 0;
-            transform: translate(-100%, -50%);
-        }
-        #left-panel.visible {
-            transform: translate(0, -50%);
-        }
-        #right-panel {
-            right: 0;
-            transform: translate(100%, -50%);
-            border-radius: 8px 0 0 8px;
-        }
-        #right-panel.visible {
-            transform: translate(0, -50%);
-        }
+        .upgrade-button:hover { background-color: var(--button-hover-bg); }
+        .upgrade-button:disabled { cursor: not-allowed; background-color: var(--button-disabled-bg); }
         
-        .panel-toggle {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 48px;
-            height: 48px;
-            background-color: var(--ui-bg);
-            border: 2px solid var(--border-color);
-            color: var(--text-color);
-            cursor: pointer;
-            z-index: 21;
-            font-size: 24px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        #left-panel-toggle { left: 0; border-radius: 0 8px 8px 0; }
-        #right-panel-toggle { right: 0; border-radius: 8px 0 0 8px; }
+        .cost { display: block; font-size: 8px; color: #94a3b8; margin-top: 5px; }
+        .level { float: right; }
 
-        .checklist-item {
-            font-size: 10px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            white-space: nowrap;
-        }
-        .checkmark {
-            color: green;
-            font-size: 14px;
-        }
-
-        /* Modal and Joystick styles */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.85);
             display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden;
@@ -336,8 +183,8 @@
         }
         .modal-overlay.visible { opacity: 1; visibility: visible; }
         .modal-content {
-            background-color: var(--primary-bg); border: 2px solid var(--border-color); padding: 20px; 
-            border-radius: 8px; text-align: center; max-width: 90%;
+            background-color: var(--primary-bg); border: 2px solid var(--border-color); padding: 30px; 
+            border-radius: 8px; text-align: center; max-width: 600px; width: 90%;
         }
         .modal-content h2 { font-size: 16px; color: var(--glow-color); margin-bottom: 20px; line-height: 1.5; }
         .modal-content p {
@@ -355,7 +202,9 @@
             font-size: 10px;
         }
         
-        #lootModal .modal-content { max-width: 350px; }
+        #lootModal .modal-content {
+            max-width: 350px;
+        }
         #notes-list {
             display: flex;
             flex-direction: column;
@@ -366,7 +215,7 @@
             box-sizing: border-box;
             background-color: rgba(0,0,0,0.3);
             border-radius: 5px;
-            max-height: 400px;
+            height: 400px;
             overflow-y: auto;
         }
         .note-item {
@@ -378,11 +227,15 @@
             line-height: 1.5;
             text-align: left;
         }
-        .note-item h4 { font-size: 12px; margin: 0; color: var(--glow-color); }
+        .note-item h4 {
+            font-size: 12px;
+            margin: 0;
+            color: var(--glow-color);
+        }
 
         #inventoryGrid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr); 
+            grid-template-columns: repeat(4, 1fr); /* 4 columns for 20 slots */
             gap: 10px;
             max-height: 300px; 
             min-height: 140px; 
@@ -391,29 +244,17 @@
             background: rgba(0,0,0,0.3); 
             border-radius: 5px;
         }
-        .inventory-panel {
-            display: flex;
-            flex-direction: row;
-            gap: 15px;
-            width: 100%;
+        #inventoryModal .hotbar-grid {
             margin-top: 15px;
         }
-        .inventory-filters, .inventory-description {
-            flex: 1;
-            background: rgba(0,0,0,0.2);
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 10px;
-            text-align: left;
+        .inventory-slot {
+            width: 60px; height: 60px; background-color: var(--button-bg); border: 2px solid var(--border-color);
+            border-radius: 5px; position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer;
         }
-        .inventory-actions {
-            display: flex;
-            justify-content: space-around;
-            width: 100%;
-            margin-top: 15px;
-        }
-        .inventory-slot-modal {
-            width: 50px; height: 50px;
+        .inventory-slot.active { border-color: var(--glow-color); box-shadow: 0 0 10px var(--glow-color); }
+        .inventory-slot canvas { width: 40px; height: 40px; background: none; border: none; }
+        .item-count {
+            position: absolute; bottom: 2px; right: 4px; font-size: 10px; color: white; text-shadow: 1px 1px 2px black;
         }
         
         .hotbar-grid {
@@ -426,6 +267,28 @@
             font-size: 14px;
         }
         .loot-item canvas { width: 40px; height: 40px; background: none; border: none; }
+        
+        #mine-hud {
+            display: none;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-end; 
+        }
+        .mine-hud-stats { 
+            display: flex; 
+            align-items: center; 
+            gap: 20px; 
+        }
+
+        #touch-controls {
+            display: none;
+            width: 100%;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            box-sizing: border-box;
+            flex-shrink: 0;
+        }
         
         #joystick-area {
             width: 120px;
@@ -450,89 +313,132 @@
             transform: translate(0, 0);
             transition: transform 0.1s;
         }
+        #touch-interact {
+            width: 80px; height: 80px;
+            background: rgba(0,0,0,0.4);
+            border: 2px solid var(--border-color);
+            color: white; border-radius: 50%;
+            font-size: 24px;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        #bottom-nav {
+            display: flex;
+            width: 100%;
+            background-color: #000;
+            justify-content: space-around;
+            padding: 5px 0;
+            border-top: 2dpx solid var(--border-color);
+            flex-shrink: 0;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+        }
+        .nav-btn {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-family: var(--font-pixel);
+            font-size: 10px;
+            cursor: pointer;
+            padding: 10px 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            border-bottom: 3px solid transparent;
+        }
+        .nav-btn.active {
+            color: var(--glow-color);
+            border-bottom: 3px solid var(--glow-color);
+        }
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            background-color: var(--button-bg);
+            border-radius: 50%;
+            border: 1px solid var(--border-color);
+        }
+
+        @media (max-width: 820px) and (orientation: portrait) {
+            body { justify-content: flex-start; }
+            .game-container, #mine-hud { flex-direction: column; gap: 15px; }
+        }
     </style>
 </head>
 <body>
 
     <div id="main-content">
         <div id="play-view" class="view active">
-            <div id="top-hud">
-                <div class="top-left-cluster">
-                    <div class="hp-container"></div>
+            <div class="game-container">
+                <div id="top-hud">
+                    <div id="top-life-container"></div>
                 </div>
-                <div id="quest-display"></div>
-                <div class="top-right-cluster">
-                    <div class="resource-cluster">
-                        <div class="resource-item" id="whiteCrystalDisplay">
-                            <span class="resource-icon" style="color:white;">●</span>
-                            <span id="whiteCrystalCount">0</span>
+                <div class="game-wrapper">
+                    <canvas id="gameCanvas" width="800" height="450"></canvas>
+                    <div id="quest-display"></div>
+                </div>
+                <div class="ui-panel">
+                    <div class="resource-panel">
+                        <div id="resource-stats-container">
+                            <div class="resource-display" id="energyDisplay">ЭНЕРГИЯ: 0 / 100</div>
+                            <div class="resource-display" id="efficiencyDisplay">ЭФФЕКТИВНОСТЬ: 50%</div>
+                            <div class="resource-display" id="stabilityDisplay">СТАБИЛЬНОСТЬ: 100%</div>
+                        </div>
+                         <div class="player-stats">
+                            <button class="action-button" id="inventoryBtn">ИНВЕНТАРЬ</button>
+                            <!-- Hotbar on main UI -->
+                            <div id="hotbar-ui" class="hotbar-grid">
+                                <div class="inventory-slot" data-slot="0"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
+                                <div class="inventory-slot" data-slot="1"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
+                                <div class="inventory-slot" data-slot="2"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
+                            </div>
                         </div>
                     </div>
-                    <div class="energy-display" id="energyDisplay">⚡ 0 / 100</div>
+                    <div class="upgrade-panel">
+                        <button class="upgrade-button" id="upgradeCollector">Сборщик <span class="level" id="collectorLvl">УР. 1</span><span class="cost">Стоимость: 50</span></button>
+                        <button class="upgrade-button" id="upgradePurifier">Очиститель <span class="level" id="purifierLvl">УР. 1</span><span class="cost">Стоимость: 75</span></button>
+                        <button class="upgrade-button" id="upgradeStorage">Хранилище <span class="level" id="storageLvl">УР. 1</span><span class="cost">Стоимость: 100</span></button>
+                        <button class="upgrade-button" id="upgradeCooler">Охладитель <span class="level" id="coolerLvl">УР. 1</span><span class="cost">Стоимость: 150</span></button>
+                    </div>
                 </div>
-            </div>
-            
-            <div class="game-wrapper">
-                <canvas id="gameCanvas" width="800" height="450"></canvas>
-            </div>
-            
-            <div id="station-bottom-sheet">
-                 <h3 class="station-header">СТАНЦИЯ</h3>
-                <div class="station-metrics">
-                    <span id="efficiencyDisplay">ЭФФЕКТИВНОСТЬ: 50%</span>
-                    <span id="stabilityDisplay">СТАБИЛЬНОСТЬ: 100%</span>
+                <div id="mine-hud">
+                    <div class="mine-hud-stats">
+                        <div id="tool-durability"></div>
+                         <!-- Hotbar for mine-hud -->
+                        <div id="hotbar-ui-mine" class="hotbar-grid">
+                            <div class="inventory-slot" data-slot="0"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
+                            <div class="inventory-slot" data-slot="1"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
+                            <div class="inventory-slot" data-slot="2"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
+                        </div>
+                        <button class="action-button" id="mineInventoryBtn">ИНВЕНТАРЬ</button>
+                    </div>
                 </div>
-                <div class="upgrade-grid">
-                     <button class="upgrade-button" id="upgradeCollector">Сборщик <span class="level" id="collectorLvl">УР. 1</span><span class="cost">Стоимость: 50</span></button>
-                    <button class="upgrade-button" id="upgradePurifier">Очиститель <span class="level" id="purifierLvl">УР. 1</span><span class="cost">Стоимость: 75</span></button>
-                    <button class="upgrade-button" id="upgradeStorage">Хранилище <span class="level" id="storageLvl">УР. 1</span><span class="cost">Стоимость: 100</span></button>
-                    <button class="upgrade-button" id="upgradeCooler">Охладитель <span class="level" id="coolerLvl">УР. 1</span><span class="cost">Стоимость: 150</span></button>
-                </div>
-            </div>
-            
-            <div class="ui-panel">
-                 <div class="bottom-action-bar">
-                    <div id="joystick-area">
+                <div id="touch-controls">
+                     <div id="joystick-area">
                         <div id="joystick-base"></div>
                         <div id="joystick-stick"></div>
                     </div>
-                    <div id="hotbar-ui" class="hotbar-grid">
-                        <div class="inventory-slot" data-slot="0"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
-                        <div class="inventory-slot" data-slot="1"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
-                        <div class="inventory-slot" data-slot="2"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
-                        <div class="inventory-slot" data-slot="3"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
-                        <div class="inventory-slot" data-slot="4"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
-                    </div>
-                    <div id="control-buttons">
-                        <button id="jump-button" class="action-button">▲</button>
-                        <button id="action-button" class="action-button">A</button>
-                    </div>
-                 </div>
+                    <button id="touch-interact">A</button>
+                </div>
             </div>
         </div>
-        
-        <!-- Side Panels -->
-        <div class="side-panel" id="left-panel">
-            <button class="action-button" id="inventoryBtn">🎒</button>
-            <button class="action-button" id="notesBtn">📜</button>
-            <button class="action-button" id="questsBtn">✅</button>
-        </div>
-        <div class="panel-toggle" id="left-panel-toggle">▶</div>
-        
-        <div class="side-panel" id="right-panel">
-             <div id="checklist-container"></div>
-        </div>
-        <div class="panel-toggle" id="right-panel-toggle">◀</div>
 
+        <div id="shop-view" class="view"><h2>Магазин</h2><p>Скоро появится</p></div>
+        <div id="notes-view" class="view"><h2>Записки</h2><div id="notes-list"></div></div>
+        <div id="quests-view" class="view"><h2>Задания</h2><div id="quests-list"></div></div>
     </div>
     
-    <!-- Modal Overlays -->
+    <div id="bottom-nav">
+        <button class="nav-btn" data-view="shop-view"><div class="nav-icon"></div>Магазин</button>
+        <button class="nav-btn" data-view="notes-view"><div class="nav-icon"></div>Записки</button>
+        <button class="nav-btn active" data-view="play-view"><div class="nav-icon"></div>Играть</button>
+        <button class="nav-btn" data-view="quests-view"><div class="nav-icon"></div>Задания</button>
+    </div>
+    
     <div class="modal-overlay" id="genericModal"><div class="modal-content"><h2 id="modalTitle"></h2><p id="modalText"></p><div id="modalLootContainer" style="display: flex; flex-direction: column; gap: 15px; align-items: center; margin-top: 20px;"></div><div id="modalHint" class="modal-hint" style="display: none;"></div><button id="modalButton" class="action-button">Продолжить</button></div></div>
-    <div class="modal-overlay" id="inventoryModal"><div class="modal-content"><h2>Инвентарь</h2><div class="inventory-panel"><div class="inventory-filters">Фильтры</div><div id="inventoryGrid"></div><div class="inventory-description">Описание</div></div><h3>Хотбар</h3><div id="hotbar-modal" class="hotbar-grid"></div><div class="inventory-actions"><button class="action-button">Экипировать</button><button class="action-button">Крафт</button><button class="action-button">Разобрать</button></div><button id="closeInventoryBtn" class="action-button">Закрыть</button></div></div>
+    <div class="modal-overlay" id="inventoryModal"><div class="modal-content"><h2>Инвентарь</h2><div id="inventoryGrid"></div><h3>Хотбар</h3><div id="hotbar-modal" class="hotbar-grid"></div><button id="closeInventoryBtn" class="action-button">Закрыть</button></div></div>
     <div class="modal-overlay" id="lootModal"><div class="modal-content"><h2 id="modalTitle">Добыча</h2><div id="lootContainer"></div><button id="closeLootBtn" class="action-button">Забрать</button></div></div>
-    <div class="modal-overlay" id="notesModal"><div class="modal-content"><h2>Записки</h2><div id="notes-list"></div><button id="closeNotesBtn" class="action-button">Закрыть</button></div></div>
-    <div class="modal-overlay" id="questsModal"><div class="modal-content"><h2>Задания</h2><div id="quests-list"></div><button id="closeQuestsBtn" class="action-button">Закрыть</button></div></div>
-
 
     <script>
         // Game canvas and context
@@ -545,8 +451,8 @@
             'wooden_pickaxe': { name: 'Деревянная кирка', type: 'tool', maxDurability: 30, power: 1 },
             'metal_pickaxe': { name: 'Металлическая кирка', type: 'tool', maxDurability: 60, power: 2 },
             'energy_pickaxe': { name: 'Энерго-кирка', type: 'tool', maxDurability: 100, power: 3 },
-            'white_crystal': { name: 'Белый кристалл', type: 'resource', icon: '#e0e0e0' },
-            'note': { name: 'Записка', type: 'quest', icon: '#d2b48c' },
+            'white_crystal': { name: 'Белый кристалл', type: 'resource' },
+            'note': { name: 'Записка', type: 'quest' },
         };
         const STONE_BLOCK_ID = 1;
         const WOOD_BLOCK_ID = 2;
@@ -567,7 +473,7 @@
         const GROUND_LEVEL = 350;
         const INVINCIBILITY_DURATION = 120;
         const INVENTORY_SIZE = 20;
-        const HOTBAR_SIZE = 5;
+        const HOTBAR_SIZE = 3;
 
         // Base speeds for different screen sizes
         const BASE_PLAYER_SPEED = 3;
@@ -600,14 +506,7 @@
             crystalsCollected: 0,
             quests: {
                 activeQuestId: 'find_ruins',
-                completed: {},
-                steps: {
-                    'find_ruins': 'Найди руины станции',
-                    'find_pickaxe': 'Найди кирку',
-                    'examine_inventory': 'Изучи инвентарь',
-                    'explore_mine': 'Исследуй шахты',
-                    'collect_crystals': 'Собери 2 белых кристалла'
-                }
+                completed: {}
             },
             time: 0,
             dayNightCycle: 0
@@ -618,26 +517,22 @@
             'find_ruins': {
                 text: 'Задача: Найди руины',
                 isComplete: (state) => state.stationInspected,
-                nextQuest: 'find_pickaxe',
-                checklist: ['Найди руины станции', 'Осмотри их']
+                nextQuest: 'find_pickaxe'
             },
             'find_pickaxe': {
                 text: 'Задача: Найди кирку',
                 isComplete: (state) => state.surface.startingChest.isOpen,
-                nextQuest: 'examine_inventory',
-                checklist: ['Найди сундук', 'Открой его']
+                nextQuest: 'examine_inventory'
             },
             'examine_inventory': {
                 text: 'Задача: Изучи инвентарь',
                 isComplete: (state) => state.hotbar.some(item => item && ITEMS[item.id].type === 'tool'),
-                nextQuest: 'explore_mine',
-                checklist: ['Открой рюкзак', 'Перетащи кирку в хотбар']
+                nextQuest: 'explore_mine'
             },
             'explore_mine': {
                 text: 'Задача: Изучи шахты',
                 isComplete: (state) => state.mine.hasExplored,
-                nextQuest: 'collect_crystals',
-                checklist: ['Найди вход в пещеру', 'Войди в пещеру']
+                nextQuest: 'collect_crystals'
             },
             'collect_crystals': {
                 text: 'Задача: Собери 2 белых кристалла',
@@ -645,8 +540,7 @@
                     const crystals = state.inventory.find(item => item && item.id === 'white_crystal');
                     return crystals && crystals.quantity >= 2;
                 },
-                nextQuest: null,
-                checklist: ['Добудь 2 кристалла']
+                nextQuest: null
             }
         };
 
@@ -722,12 +616,10 @@
         function setupTouchControls() {
             if (!('ontouchstart' in window || navigator.maxTouchPoints > 0)) {
                 // Hide touch controls on non-touch devices
-                document.getElementById('joystick-area').style.display = 'none';
-                document.getElementById('control-buttons').style.display = 'none';
+                document.getElementById('touch-controls').style.display = 'none';
                 return;
             }
-            document.getElementById('joystick-area').style.display = 'flex';
-            document.getElementById('control-buttons').style.display = 'flex';
+            document.getElementById('touch-controls').style.display = 'flex';
             
             const joystickArea = document.getElementById('joystick-area');
             const joystickStick = document.getElementById('joystick-stick');
@@ -778,9 +670,7 @@
             joystickArea.addEventListener('touchend', resetJoystick);
             joystickArea.addEventListener('touchcancel', resetJoystick);
             
-            document.getElementById('action-button').addEventListener('touchstart', (e) => { e.preventDefault(); handleInteraction(); });
-            document.getElementById('jump-button').addEventListener('touchstart', (e) => { e.preventDefault(); keys.up.pressed = true; });
-            document.getElementById('jump-button').addEventListener('touchend', (e) => { e.preventDefault(); keys.up.pressed = false; });
+            document.getElementById('touch-interact').addEventListener('touchstart', (e) => { e.preventDefault(); handleInteraction(); });
         }
 
         // Function to handle player interaction with game objects
@@ -831,6 +721,7 @@
                     let noteX = playerTileX;
                     let noteY = playerTileY;
 
+                    // Check positions immediately adjacent to the player
                     const possiblePositions = [
                         {x: playerTileX + 1, y: playerTileY},
                         {x: playerTileX - 1, y: playerTileY},
@@ -850,6 +741,7 @@
                     }
 
                     if (!notePlaced) {
+                         // Fallback to a random spot if no suitable path is found
                          let fallbackPlaced = false;
                          const emptyTiles = [];
                          for(let y = 0; y < MINE_ROWS; y++) {
@@ -871,7 +763,7 @@
                     }
                 }
 
-                updateHotbarUI();
+                updateHotbarUI(); // Обновляем хотбар при смене локации
             } else {
                  p.x = gameState.surface.mineEntrance.x; p.y = GROUND_LEVEL - p.height;
             }
@@ -888,8 +780,10 @@
 
             const blockId = gameState.mine.grid[facingTile.y][facingTile.x];
             
+            // Allow mining only if the block is not a path or an unbreakable wall.
             if (blockId === 0 || blockId === STONE_BLOCK_ID || blockId === LOOT_SPAWN_ID) return; 
 
+            // Use tool.power to mine any minable block
             const tileKey = `${facingTile.x},${facingTile.y}`;
             let currentDamage = gameState.mine.damagedBlocks[tileKey] || 0;
             currentDamage += ITEMS[tool.id].power;
@@ -909,7 +803,7 @@
                 gameState.hotbar[p.activeHotbarIndex] = null;
                 p.activeHotbarIndex = -1;
             }
-            updateHotbarUI();
+            updateHotbarUI(); // Обновляем хотбар после использования инструмента
         }
 
         function getFacingTile() {
@@ -925,26 +819,33 @@
         }
 
         const uiPanel = document.querySelector('.ui-panel');
-        const stationBottomSheet = document.getElementById('station-bottom-sheet');
+        const mineHud = document.getElementById('mine-hud');
 
+        // Main game loop
         function gameLoop() {
             gameState.time++;
             updateQuestSystem();
             if (gameState.currentLocation === 'surface') {
                 updateSurface(); 
                 drawSurface(); 
-                stationBottomSheet.style.display = 'none';
+                uiPanel.style.display = 'grid';
+                mineHud.style.display = 'none';
+                uiPanel.classList.toggle('ruined-mode', !gameState.stationRepaired);
             } else { 
                 updateMine(); 
                 drawMine();
                 drawGhosts();
-                stationBottomSheet.style.display = 'none';
+                uiPanel.style.display = 'none';
+                mineHud.style.display = 'flex';
             }
             drawPlayer();
             drawInteractionPrompt();
             requestAnimationFrame(gameLoop);
         }
         
+        // UI and inventory functions
+        
+        // Maze generation and pathfinding
         function generateMaze(cols, rows) {
             let grid = Array(rows).fill(null).map(() => Array(cols).fill(STONE_BLOCK_ID));
             let stack = [];
@@ -979,6 +880,7 @@
             gameState.mine.chest.x = farthest.x;
             gameState.mine.chest.y = farthest.y;
 
+            // Add wooden blocks
             for (let i = 0; i < (cols * rows) / 10; i++) {
                 const x = 1 + Math.floor(Math.random() * (cols - 2));
                 const y = 1 + Math.floor(Math.random() * (rows - 2));
@@ -987,6 +889,7 @@
                 }
             }
             
+            // Add pure energy blocks based on how many have been collected
             let crystalsToSpawn = 2 - gameState.crystalsCollected;
             if (crystalsToSpawn > 0) {
                 let energyBlocksPlaced = 0;
@@ -1035,11 +938,12 @@
                     }
                     const damage = gameState.mine.damagedBlocks[`${x},${y}`]; 
                     if (damage) { 
-                        const healthPercentage = 1 - damage / BLOCK_HEALTH[grid[y][x]];
-                        drawBlockDurability(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, healthPercentage);
+                        ctx.fillStyle = `rgba(0,0,0,${0.2 * damage})`; 
+                        ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE); 
                     } 
                 } 
             } 
+            // Draw loot items on top of the grid
             gameState.mine.loot.forEach(lootItem => {
                 drawItem(ctx, lootItem.id, lootItem.x * TILE_SIZE, lootItem.y * TILE_SIZE, TILE_SIZE);
             });
@@ -1064,13 +968,6 @@
             ctx.fill(); 
         }
         
-        function drawBlockDurability(x, y, size, percentage) {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-            ctx.fillRect(x + 5, y, size - 10, 3);
-            ctx.fillStyle = '#ff4757';
-            ctx.fillRect(x + 5, y, (size - 10) * percentage, 3);
-        }
-
         function findPath(grid, start, end) {
             const queue = [[start]];
             const visited = new Set([`${start.x},${start.y}`]);
@@ -1102,6 +999,7 @@
             }
 
             gameState.mine.ghostSpawnTimer--;
+            // Check if it's time to spawn a ghost
             if (gameState.mine.ghostSpawnTimer <= 0 && gameState.mine.ghosts.length < 3) {
                 const emptyTiles = [];
                 for(let y = 0; y < MINE_ROWS; y++) for(let x = 0; x < MINE_COLS; x++) if(gameState.mine.grid[y][x] === 0) emptyTiles.push({x, y});
@@ -1113,6 +1011,7 @@
                         gameState.mine.ghosts.push({ x: start.x * TILE_SIZE, y: start.y * TILE_SIZE, path, pathIndex: 0, speed: BASE_GHOST_SPEED, alpha: 0, state: 'spawning' });
                     }
                 }
+                // Reset the spawn timer with a larger range for less frequent spawns
                 gameState.mine.ghostSpawnTimer = GHOST_SPAWN_MIN + Math.random() * GHOST_SPAWN_MAX;
             }
 
@@ -1152,6 +1051,7 @@
                 });
             }
 
+            // Check for loot pickup
             const pRect = { x: gameState.player.x, y: gameState.player.y, width: gameState.player.width, height: gameState.player.height };
             gameState.mine.loot = gameState.mine.loot.filter(lootItem => {
                 const lootRect = { x: lootItem.x * TILE_SIZE, y: lootItem.y * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE };
@@ -1159,21 +1059,21 @@
                     if (lootItem.id === 'white_crystal') {
                         addToInventory('white_crystal', 1);
                         gameState.crystalsCollected++; 
-                        return false;
+                        return false; // Remove crystal
                     } else if (lootItem.id === 'note') {
                         const noteText = "Записка: Корпорация разрушила всё... они превратили свет в тьму. Источник где-то рядом... я точно знаю. Осталось лишь найти его и вернуть импульс станции. Чистой энергии почти не осталось... и сил тоже...";
                         const hintText = "ПОДСКАЗКА: Разбей белые блоки и загляни в сундук";
                         showModalWithHint("Записка", noteText, hintText, () => {
                              addToNotes(noteText);
-                             gameState.mine.notePickedUp = true;
+                             gameState.mine.notePickedUp = true; // Set state to prevent future spawns
                              if (gameState.quests.activeQuestId === 'explore_mine') {
                                  gameState.quests.activeQuestId = 'collect_crystals';
                              }
                         });
-                        return false;
+                        return false; // Remove note
                     }
                 }
-                return true;
+                return true; // Keep loot
             });
         }
         function handlePlayerDeath() {
@@ -1188,65 +1088,7 @@
         function applyPhysics() { const p = gameState.player; if (gameState.currentLocation === 'surface') { p.vy += GRAVITY; p.x += p.dx; let nY = p.y + p.vy; if (nY + p.height >= GROUND_LEVEL) { nY = GROUND_LEVEL - p.height; p.vy = 0; p.isGrounded = true; } else { p.isGrounded = false; } p.y = nY; } else { p.isGrounded = true; p.vy = 0; let nX = p.x + p.dx; let nY = p.y + p.dy; const grid = gameState.mine.grid; if (!checkWallCollision(nX, nY, p.width, p.height, grid)) { p.x = nX; p.y = nY; } else { if (!checkWallCollision(nX, p.y, p.width, p.height, grid)) { p.x = nX; } if (!checkWallCollision(p.x, nY, p.width, p.height, grid)) { p.y = nY; } } } if (p.x < 0) p.x = 0; if (p.x + p.width > canvas.width) p.x = canvas.width - p.width; if (p.y < 0) p.y = 0; if (p.y + p.height > canvas.height) p.y = canvas.height - p.height; }
         function checkWallCollision(x,y,w,h,g){if(!g)return!1;const lT=Math.floor(x/TILE_SIZE),rT=Math.floor((x+w)/TILE_SIZE),tT=Math.floor(y/TILE_SIZE),bT=Math.floor((y+h)/TILE_SIZE);for(let row=tT;row<=bT;row++){for(let col=lT;col<=rT;col++){if(row<0||row>=MINE_ROWS||col<0||col>=MINE_COLS||g[row][col]===STONE_BLOCK_ID||g[row][col]===WOOD_BLOCK_ID||g[row][col]===PURE_ENERGY_BLOCK_ID)return!0}}return!1}
         function rectsOverlap(r1, r2) { return r1.x < r2.x + r2.width && r1.x + r1.width > r2.x && r1.y < r2.y + r2.height && r1.y + r1.height > r2.y; }
-        function checkInteractionZones() { 
-            const p = gameState.player; 
-            let inZone = false; 
-            let target = null; 
-            const pRect = { x: p.x, y: p.y, width: p.width, height: p.height }; 
-            
-            const stationInRange = rectsOverlap(pRect, gameState.surface.stationRuins);
-            stationBottomSheet.style.display = (gameState.currentLocation === 'surface' && stationInRange) ? 'flex' : 'none';
-
-            if (gameState.currentLocation === 'surface') { 
-                if (rectsOverlap(pRect, gameState.surface.mineEntrance) && gameState.hotbar.some(item => item && ITEMS[item.id].type === 'tool')) { 
-                    inZone = true; target = {type: 'mineEntrance'}; 
-                } 
-                const sChest = gameState.surface.startingChest; 
-                const sChestRect = { x: sChest.x, y: sChest.y, width: TILE_SIZE, height: TILE_SIZE }; 
-                if (!sChest.isOpen && rectsOverlap(pRect, sChestRect) && gameState.stationInspected) { 
-                    inZone = true; target = { type: 'startingChest' }; 
-                } 
-                if (!gameState.stationRepaired) { 
-                    if(stationInRange) { 
-                        inZone = true; target = {type: 'stationRuins'}; 
-                    } 
-                } 
-            } else { 
-                const exit = gameState.mine.exit; 
-                if (rectsOverlap(pRect, exit)) { 
-                    inZone = true; target = {type: 'mineExit'}; 
-                } 
-                const chest = gameState.mine.chest; 
-                const chestRect = { x: chest.x * TILE_SIZE, y: chest.y * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE }; 
-                if (!chest.isOpen && rectsOverlap(pRect, chestRect)) { 
-                    inZone = true; target = {type: 'chest'}; 
-                } 
-            } 
-            p.canInteract = inZone; 
-            p.interactionTarget = target; 
-            
-            const actionButton = document.getElementById('action-button');
-            actionButton.textContent = "A";
-            if (p.canInteract && p.interactionTarget) {
-                switch(p.interactionTarget.type) {
-                    case 'mineEntrance':
-                        actionButton.textContent = "Войти";
-                        break;
-                    case 'mineExit':
-                        actionButton.textContent = "Выход";
-                        break;
-                    case 'chest':
-                    case 'startingChest':
-                        actionButton.textContent = "Открыть";
-                        break;
-                    case 'stationRuins':
-                        actionButton.textContent = "Осмотреть";
-                        break;
-                }
-            } else if (gameState.currentLocation === 'mine' && p.activeHotbarIndex !== -1 && ITEMS[gameState.hotbar[p.activeHotbarIndex]?.id]?.type === 'tool') {
-                actionButton.textContent = "Ударить";
-            }
-        }
+        function checkInteractionZones() { const p = gameState.player; let inZone = false; let target = null; const pRect = { x: p.x, y: p.y, width: p.width, height: p.height }; if (gameState.currentLocation === 'surface') { if (rectsOverlap(pRect, gameState.surface.mineEntrance) && gameState.hotbar.some(item => item && ITEMS[item.id].type === 'tool')) { inZone = true; target = {type: 'mineEntrance'}; } const sChest = gameState.surface.startingChest; const sChestRect = { x: sChest.x, y: sChest.y, width: TILE_SIZE, height: TILE_SIZE }; if (!sChest.isOpen && rectsOverlap(pRect, sChestRect) && gameState.stationInspected) { inZone = true; target = { type: 'startingChest' }; } if (!gameState.stationRepaired) { if(rectsOverlap(pRect, gameState.surface.stationRuins)) { inZone = true; target = {type: 'stationRuins'}; } } } else { const exit = gameState.mine.exit; if (rectsOverlap(pRect, exit)) { inZone = true; target = {type: 'mineExit'}; } const chest = gameState.mine.chest; const chestRect = { x: chest.x * TILE_SIZE, y: chest.y * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE }; if (!chest.isOpen && rectsOverlap(pRect, chestRect)) { inZone = true; target = {type: 'chest'}; } } p.canInteract = inZone; p.interactionTarget = target; }
 
         function addToInventory(itemId, quantity) { 
             const itemDef = ITEMS[itemId];
@@ -1259,6 +1101,7 @@
                     if (emptySlot !== -1) {
                         gameState.inventory[emptySlot] = { id: itemId, quantity };
                     } else {
+                        // Inventory is full, handle this case
                         console.log("Инвентарь полон!");
                     }
                 }
@@ -1318,9 +1161,15 @@
             if (gameState.player.isInvincible && Math.floor(gameState.time / 6) % 2 === 0) return; 
             const p = gameState.player; 
             const bobbing = !p.isGrounded ? 0 : Math.sin(gameState.time / 5) * 1; 
+
+            // Offset the drawing by 12 pixels to align the sprite with the bounding box
             const drawOffset = 12;
+
+            // Body
             ctx.fillStyle = '#a0522d'; 
             ctx.fillRect(p.x, p.y + bobbing + drawOffset, 16, 12); 
+            
+            // Legs
             ctx.fillStyle = '#2c3e50'; 
             if (keys.left.pressed || keys.right.pressed) { 
                 const legOffset = Math.sin(gameState.time / 4) * 3; 
@@ -1330,10 +1179,14 @@
                 ctx.fillRect(p.x + 2, p.y + 12 + drawOffset, 4, 8); 
                 ctx.fillRect(p.x + 10, p.y + 12 + drawOffset, 4, 8); 
             } 
+            
+            // Head and hat
             ctx.fillStyle = '#f0d9b5'; 
             ctx.fillRect(p.x + 4, p.y - 8 + bobbing + drawOffset, 8, 8); 
             ctx.fillStyle = '#6c757d'; 
             ctx.fillRect(p.x + 2, p.y - 12 + bobbing + drawOffset, 12, 4); 
+            
+            // Light on hat
             ctx.fillStyle = 'yellow'; 
             ctx.fillRect(p.x + 7, p.y - 11 + bobbing + drawOffset, 2, 2); 
         }
@@ -1371,11 +1224,18 @@
         
         function updateUI() { 
             const playerLives = gameState.player.lives;
-            document.querySelector('.hp-container').textContent = '❤️'.repeat(playerLives); 
+            document.getElementById('top-life-container').textContent = '❤'.repeat(playerLives); 
 
-            document.getElementById('energyDisplay').textContent = `⚡ ${Math.floor(gameState.pureEnergy)} / ${gameState.storage.capacity}`; 
-            document.getElementById('efficiencyDisplay').textContent = `ЭФФЕКТИВНОСТЬ: ${Math.round(gameState.purifier.efficiency * 100)}%`;
-            document.getElementById('stabilityDisplay').textContent = `СТАБИЛЬНОСТЬ: ${Math.round(gameState.cooler.stability * 100)}%`;
+            // Show or hide resource stats based on station status
+            const resourceStatsContainer = document.getElementById('resource-stats-container');
+            if (gameState.stationRepaired) {
+                resourceStatsContainer.style.display = 'flex';
+                document.getElementById('energyDisplay').textContent = `ЭНЕРГИЯ: ${Math.floor(gameState.pureEnergy)} / ${gameState.storage.capacity}`; 
+                document.getElementById('efficiencyDisplay').textContent = `ЭФФЕКТИВНОСТЬ: ${Math.round(gameState.purifier.efficiency * 100)}%`;
+                document.getElementById('stabilityDisplay').textContent = `СТАБИЛЬНОСТЬ: ${Math.round(gameState.cooler.stability * 100)}%`;
+            } else {
+                 resourceStatsContainer.style.display = 'none';
+            }
             
             ['Collector', 'Purifier', 'Storage', 'Cooler'].forEach(type => {
                 const btn = document.getElementById(`upgrade${type}`);
@@ -1385,9 +1245,8 @@
                 btn.querySelector('.cost').textContent = `Стоимость: ${cost}`;
                 btn.disabled = gameState.pureEnergy < cost;
             });
-            
+
             updateHotbarUI();
-            updateChecklist();
         }
         
         // Upgrade logic
@@ -1445,32 +1304,35 @@
         const inventoryGrid = document.getElementById('inventoryGrid');
         const hotbarModal = document.getElementById('hotbar-modal');
         const hotbarUI = document.getElementById('hotbar-ui');
+        const hotbarUIMine = document.getElementById('hotbar-ui-mine');
         
         function updateHotbarUI() {
-            const hotbarElements = document.querySelectorAll('#hotbar-ui .inventory-slot');
-            hotbarElements.forEach((slot, index) => {
+            // Hotbar elements in the main UI and mine UI
+            const hotbarElements = [
+                ...document.querySelectorAll('#hotbar-ui .inventory-slot'),
+                ...document.querySelectorAll('#hotbar-ui-mine .inventory-slot')
+            ];
+
+            // Update all hotbar UIs simultaneously
+            hotbarElements.forEach(slot => {
+                const index = parseInt(slot.dataset.slot);
                 const item = gameState.hotbar[index];
                 const canvas = slot.querySelector('canvas');
+                const countDiv = slot.querySelector('.item-count');
+
+                // Clear previous content
                 const ctx = canvas.getContext('2d');
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                const countDiv = slot.querySelector('.item-count');
                 countDiv.textContent = '';
-                
-                const durabilityBar = slot.querySelector('.tool-durability-bar');
-                if (durabilityBar) durabilityBar.remove();
+                countDiv.style.display = 'none';
 
                 if (item) {
                     drawItem(ctx, item.id, 0, 0, 40);
-                    if (item.quantity) {
-                        countDiv.textContent = `x${item.quantity}`;
-                    } else if (item.durability) {
-                        const newDurabilityBar = document.createElement('div');
-                        newDurabilityBar.className = 'tool-durability-bar';
-                        newDurabilityBar.style.width = `${(item.durability / ITEMS[item.id].maxDurability) * 100}%`;
-                        slot.appendChild(newDurabilityBar);
-                    }
+                    countDiv.textContent = item.quantity ? `x${item.quantity}` : `${item.durability}/${ITEMS[item.id].maxDurability}`;
+                    countDiv.style.display = 'block';
                 }
 
+                // Set active slot glow
                 if (index === gameState.player.activeHotbarIndex) {
                     slot.classList.add('active');
                 } else {
@@ -1478,11 +1340,12 @@
                 }
             });
 
-            hotbarModal.innerHTML = '';
+            // Update hotbar in modal
+            hotbarModal.innerHTML = ''; // Clear the modal hotbar first
             for (let i = 0; i < HOTBAR_SIZE; i++) {
                 const item = gameState.hotbar[i];
                 const slotModal = document.createElement('div');
-                slotModal.className = 'inventory-slot inventory-slot-modal hotbar-slot';
+                slotModal.className = 'inventory-slot hotbar-slot';
                 slotModal.dataset.hotbarIndex = i;
                 if (i === gameState.player.activeHotbarIndex) slotModal.classList.add('active');
                 const canvasModal = document.createElement('canvas');
@@ -1503,10 +1366,11 @@
 
         function openInventory() {
             inventoryGrid.innerHTML = '';
+            // Render main inventory
             for (let i = 0; i < INVENTORY_SIZE; i++) {
                 const item = gameState.inventory[i];
                 const slot = document.createElement('div');
-                slot.className = 'inventory-slot inventory-slot-modal';
+                slot.className = 'inventory-slot';
                 slot.dataset.inventoryIndex = i;
                 const canvas = document.createElement('canvas');
                 canvas.width = canvas.height = 40;
@@ -1522,8 +1386,10 @@
                 inventoryGrid.appendChild(slot);
             }
 
+            // Render hotbar
             updateHotbarUI();
             
+            // Add click listeners
             inventoryGrid.querySelectorAll('.inventory-slot').forEach(slot => {
                 slot.addEventListener('click', (e) => {
                     const index = parseInt(e.currentTarget.dataset.inventoryIndex);
@@ -1534,19 +1400,19 @@
                             gameState.hotbar[emptyHotbarSlot] = item;
                             gameState.inventory[index] = null;
                             gameState.player.activeHotbarIndex = emptyHotbarSlot;
-                            openInventory();
+                            openInventory(); // Re-render to show changes
                         }
                     }
                 });
             });
 
-            hotbarModal.querySelectorAll('.hotbar-slot').forEach(slot => {
+            hotbarModal.querySelectorAll('.inventory-slot').forEach(slot => {
                 slot.addEventListener('click', (e) => {
                     const index = parseInt(e.currentTarget.dataset.hotbarIndex);
                     const item = gameState.hotbar[index];
                     if (item) {
                         gameState.player.activeHotbarIndex = index;
-                        openInventory();
+                        openInventory(); // Re-render to show changes
                     }
                 });
             });
@@ -1554,10 +1420,8 @@
             inventoryModal.classList.add('visible');
         }
 
-        document.getElementById('inventoryBtn').onclick = () => {
-             openInventory();
-             document.getElementById('inventoryModal').classList.add('visible');
-        };
+        document.getElementById('inventoryBtn').onclick = openInventory;
+        document.getElementById('mineInventoryBtn').onclick = openInventory;
         document.getElementById('closeInventoryBtn').onclick = () => {
              const wasExamineInventoryQuestActive = gameState.quests.activeQuestId === 'examine_inventory';
              
@@ -1565,27 +1429,13 @@
 
              const hasPickaxeInHotbarAfter = gameState.hotbar.some(item => item && ITEMS[item.id].type === 'tool');
 
+             // Check if the quest was completed on closing the inventory
              if (wasExamineInventoryQuestActive && hasPickaxeInHotbarAfter) {
                  gameState.quests.completed[wasExamineInventoryQuestActive] = true;
                  gameState.quests.activeQuestId = 'explore_mine';
                  showMineHintModal();
              }
         };
-        document.getElementById('notesBtn').onclick = () => {
-            updateNotesView();
-            document.getElementById('notesModal').classList.add('visible');
-        };
-        document.getElementById('closeNotesBtn').onclick = () => {
-             document.getElementById('notesModal').classList.remove('visible');
-        };
-        document.getElementById('questsBtn').onclick = () => {
-            updateQuestsView();
-            document.getElementById('questsModal').classList.add('visible');
-        };
-        document.getElementById('closeQuestsBtn').onclick = () => {
-             document.getElementById('questsModal').classList.remove('visible');
-        };
-
 
         const lootModal = document.getElementById('lootModal');
         const lootContainer = document.getElementById('lootContainer');
@@ -1617,42 +1467,6 @@
                 notesList.appendChild(noteDiv);
             });
         }
-        function updateQuestsView() {
-            const questsList = document.getElementById('quests-list');
-            questsList.innerHTML = '';
-            for (const questId in QUESTS) {
-                const quest = QUESTS[questId];
-                const questDiv = document.createElement('div');
-                questDiv.className = 'note-item';
-                const isCompleted = gameState.quests.completed[questId];
-                questDiv.innerHTML = `<h4>${quest.text} ${isCompleted ? '✅' : ''}</h4>`;
-                questsList.appendChild(questDiv);
-            }
-        }
-        
-        const checklistContainer = document.getElementById('checklist-container');
-        function updateChecklist() {
-            checklistContainer.innerHTML = '';
-            const activeQuest = QUESTS[gameState.quests.activeQuestId];
-            if (activeQuest && activeQuest.checklist) {
-                activeQuest.checklist.forEach((step, index) => {
-                    const stepDiv = document.createElement('div');
-                    stepDiv.className = 'checklist-item';
-                    const isCompleted = index === 0 && activeQuest.isComplete(gameState); // simplified logic
-                    if (isCompleted) {
-                         stepDiv.innerHTML = `<span class="checkmark">✔</span> ${step}`;
-                    } else {
-                        stepDiv.textContent = step;
-                    }
-                    checklistContainer.appendChild(stepDiv);
-                });
-            }
-        }
-
-        const leftPanel = document.getElementById('left-panel');
-        const rightPanel = document.getElementById('right-panel');
-        document.getElementById('left-panel-toggle').onclick = () => { leftPanel.classList.toggle('visible'); };
-        document.getElementById('right-panel-toggle').onclick = () => { rightPanel.classList.toggle('visible'); };
         
         // Quest system
         const questDisplay = document.getElementById('quest-display');
@@ -1671,6 +1485,7 @@
                 gameState.quests.completed[activeQuestId] = true;
                 gameState.quests.activeQuestId = quest.nextQuest || null;
                 
+                // Show hint when mine becomes accessible
                 if (activeQuestId === 'examine_inventory' && !mineHintShown) {
                     showMineHintModal();
                     mineHintShown = true;
@@ -1680,13 +1495,16 @@
         
         // Game initialization
         function init() {
+            // Adjust speeds based on screen size (for mobile)
             if (window.innerWidth <= 768) {
-                gameState.player.speed = BASE_PLAYER_SPEED * 0.9; 
-                BASE_GHOST_SPEED = BASE_GHOST_SPEED * 0.9;
+                gameState.player.speed = BASE_PLAYER_SPEED * 0.9; // Увеличиваем скорость персонажа
+                BASE_GHOST_SPEED = BASE_GHOST_SPEED * 0.9; // Увеличиваем скорость призраков
             }
 
+            // Initialize touch controls
             setupTouchControls();
 
+            // Initialize inventory and hotbar
             gameState.inventory = Array(INVENTORY_SIZE).fill(null);
             gameState.hotbar = Array(HOTBAR_SIZE).fill(null);
             showModalWithHint("Мир был разбит...", "Корпорация высосала спектральную энергию людей... тьма породила призрачные тени... Ты - Избранный и твоя задача - очистить мир и возродить источник чистой энергии.", "ПОДСКАДКА: Найди руины", gameLoop);
@@ -1700,13 +1518,32 @@
             document.getElementById('genericModal').classList.add('visible');
             const button = document.getElementById('modalButton');
             button.onclick = () => { 
-                document.getElementById('modalHint').style.display = 'none';
+                document.getElementById('modalHint').style.display = 'none'; // Hide hint on close
                 document.getElementById('genericModal').classList.remove('visible'); 
                 if (callback) callback(); 
             };
         }
 
         init();
+        
+        // Navigation system
+        document.querySelectorAll('.nav-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const targetViewId = button.dataset.view;
+                document.querySelectorAll('.view').forEach(view => {
+                    view.classList.remove('active');
+                });
+                document.querySelectorAll('.nav-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.getElementById(targetViewId).classList.add('active');
+                button.classList.add('active');
+
+                if (targetViewId === 'notes-view') {
+                    updateNotesView();
+                }
+            });
+        });
         
     </script>
 </body>
