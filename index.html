@@ -446,6 +446,25 @@
         const ctx = canvas.getContext('2d');
         ctx.imageSmoothingEnabled = false;
 
+        // Конфигурация и состояние камеры
+        const CAMERA = {
+            zoom: 1.8,                 
+            followLerp: 0.12,          
+            deadZoneW: 0.25,           
+            deadZoneH: 0.20,           
+            pixelSnap: true
+        };
+
+        const cameraState = {
+            x: 0, y: 0,               
+            vw: canvas.width  / CAMERA.zoom, 
+            vh: canvas.height / CAMERA.zoom, 
+            bounds: { minX:0, minY:0, maxX:800, maxY:450 } 
+        };
+
+        // Размеры мира
+        const SURFACE_WORLD = { width: 2400, height: 450 };
+
         // Constants for game items and blocks
         const ITEMS = {
             'wooden_pickaxe': { name: 'Деревянная кирка', type: 'tool', maxDurability: 30, power: 1 },
@@ -497,9 +516,9 @@
             player: { x: 450, y: GROUND_LEVEL - 32, width: 16, height: 32, speed: BASE_PLAYER_SPEED, dx: 0, dy: 0, vy: 0, isGrounded: true, canInteract: false, interactionTarget: null, lives: 3, isInvincible: false, invincibilityTimer: 0, activeHotbarIndex: -1, lastDx: 1, lastDy: 0 },
             mine: { grid: null, damagedBlocks: {}, loot: [], chest: { x: 0, y: 0, isOpen: false }, exit: { x: TILE_SIZE, y: TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE * 2 }, ghosts: [], ghostSpawnTimer: 0, hasExplored: false, notePickedUp: false },
             surface: { 
-                mineEntrance: { x: 720, y: GROUND_LEVEL - 80, width: 60, height: 80 },
-                startingChest: { x: 650, y: GROUND_LEVEL - TILE_SIZE, isOpen: false },
-                stationRuins: { x: 500, y: GROUND_LEVEL - 150, width: 150, height: 150 }
+                mineEntrance: { x: 2000, y: GROUND_LEVEL - 80, width: 60, height: 80 },
+                startingChest: { x: 1700, y: GROUND_LEVEL - TILE_SIZE, isOpen: false },
+                stationRuins: { x: 1000, y: GROUND_LEVEL - 150, width: 150, height: 150 }
             },
             stationRepaired: false,
             stationInspected: false,
@@ -707,6 +726,7 @@
             
             gameState.currentLocation = location;
             const p = gameState.player;
+            configureCameraBoundsFor(location);
             if (location === 'mine') {
                 gameState.mine.grid = generateMaze(MINE_COLS, MINE_ROWS);
                 gameState.mine.damagedBlocks = {};
@@ -767,6 +787,7 @@
             } else {
                  p.x = gameState.surface.mineEntrance.x; p.y = GROUND_LEVEL - p.height;
             }
+            snapCameraToPlayer();
         }
         
         function mineBlock() {
@@ -796,8 +817,6 @@
                     gameState.mine.grid[facingTile.y][facingTile.x] = 0;
                 }
                 delete gameState.mine.damagedBlocks[tileKey];
-            } else {
-                gameState.mine.damagedBlocks[tileKey] = currentDamage;
             }
             if (tool.durability <= 0) {
                 gameState.hotbar[p.activeHotbarIndex] = null;
@@ -827,19 +846,30 @@
             updateQuestSystem();
             if (gameState.currentLocation === 'surface') {
                 updateSurface(); 
-                drawSurface(); 
                 uiPanel.style.display = 'grid';
                 mineHud.style.display = 'none';
                 uiPanel.classList.toggle('ruined-mode', !gameState.stationRepaired);
             } else { 
                 updateMine(); 
-                drawMine();
-                drawGhosts();
                 uiPanel.style.display = 'none';
                 mineHud.style.display = 'flex';
             }
+            
+            updateCameraFollow();
+
+            // Отрисовка мира
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            beginWorldCamera();
+            if (gameState.currentLocation === 'surface') {
+                drawSurface();
+            } else {
+                drawMine();
+                drawGhosts();
+            }
             drawPlayer();
             drawInteractionPrompt();
+            endWorldCamera();
+
             requestAnimationFrame(gameLoop);
         }
         
@@ -906,22 +936,84 @@
             return grid;
         }
 
-        // Drawing and update functions
-        function drawSurface() { ctx.clearRect(0,0,800,450); drawSky(gameState.dayNightCycle); drawLandscape(); drawStartingChest(); drawCrystals(); drawStation(); }
-        function updateSurface() { 
-            gameState.dayNightCycle += 0.0005; 
-            if(gameState.stationRepaired && gameState.pureEnergy < gameState.storage.capacity) {
-                gameState.pureEnergy += gameState.collector.rate * gameState.purifier.efficiency;
-            }
-            handlePlayerMovement(); 
-            applyPhysics(); 
-            checkInteractionZones(); 
-            updateUI();
+        // Camera functions
+        function beginWorldCamera(){
+            ctx.save();
+            ctx.scale(CAMERA.zoom, CAMERA.zoom);
+            ctx.translate(-cameraState.x, -cameraState.y);
         }
+
+        function endWorldCamera(){
+            ctx.restore();
+        }
+
+        function updateCameraFollow(){
+            const p = gameState.player;
+            const dzW = cameraState.vw * CAMERA.deadZoneW;
+            const dzH = cameraState.vh * CAMERA.deadZoneH;
+            const dzX = cameraState.x + (cameraState.vw - dzW)/2;
+            const dzY = cameraState.y + (cameraState.vh - dzH)/2;
+
+            let targetX = cameraState.x;
+            let targetY = cameraState.y;
+
+            if (p.x < dzX)                      targetX -= (dzX - p.x);
+            else if (p.x > dzX + dzW)           targetX += (p.x - (dzX + dzW));
+            if (p.y < dzY)                      targetY -= (dzY - p.y);
+            else if (p.y > dzY + dzH)           targetY += (p.y - (dzY + dzH));
+
+            cameraState.x += (targetX - cameraState.x) * CAMERA.followLerp;
+            cameraState.y += (targetY - cameraState.y) * CAMERA.followLerp;
+
+            cameraState.x = Math.max(cameraState.bounds.minX, Math.min(cameraState.x, cameraState.bounds.maxX - cameraState.vw));
+            cameraState.y = Math.max(cameraState.bounds.minY, Math.min(cameraState.y, cameraState.bounds.maxY - cameraState.vh));
+
+            if (CAMERA.pixelSnap) {
+                cameraState.x = Math.round(cameraState.x * CAMERA.zoom) / CAMERA.zoom;
+                cameraState.y = Math.round(cameraState.y * CAMERA.zoom) / CAMERA.zoom;
+            }
+        }
+        
+        function snapCameraToPlayer(){
+            cameraState.x = gameState.player.x - cameraState.vw/2;
+            cameraState.y = gameState.player.y - cameraState.vh/2;
+
+            cameraState.x = Math.max(cameraState.bounds.minX, Math.min(cameraState.x, cameraState.bounds.maxX - cameraState.vw));
+            cameraState.y = Math.max(cameraState.bounds.minY, Math.min(cameraState.y, cameraState.bounds.maxY - cameraState.vh));
+        }
+
+        function configureCameraBoundsFor(location){
+            if (location === 'surface') {
+                cameraState.bounds = { minX:0, minY:0,
+                    maxX:SURFACE_WORLD.width, maxY:SURFACE_WORLD.height };
+            } else {
+                cameraState.bounds = { minX:0, minY:0,
+                    maxX:MINE_COLS*TILE_SIZE, maxY:MINE_ROWS*TILE_SIZE };
+            }
+            cameraState.vw = canvas.width  / CAMERA.zoom;
+            cameraState.vh = canvas.height / CAMERA.zoom;
+        }
+
+        // Drawing and update functions
+        function drawSurface() { 
+            drawSky(gameState.dayNightCycle); 
+            drawParallaxLayer(drawLandscapeFar, 0.4);
+            drawParallaxLayer(drawLandscapeNear, 0.6);
+            drawParallaxLayer(drawCrystals, 1.0);
+            drawStation(); 
+            drawStartingChest(); 
+        }
+
+        function drawParallaxLayer(drawFn, factor){
+            ctx.save();
+            ctx.translate(-cameraState.x*(factor-1), -cameraState.y*(factor-1));
+            drawFn();
+            ctx.restore();
+        }
+
         function drawMine() { 
-            ctx.clearRect(0,0,800,450); 
             ctx.fillStyle = '#2d2d2d'; 
-            ctx.fillRect(0, 0, canvas.width, canvas.height); 
+            ctx.fillRect(0, 0, MINE_COLS * TILE_SIZE, MINE_ROWS * TILE_SIZE); 
             const grid = gameState.mine.grid; 
             if (!grid) return; 
             for (let y = 0; y < MINE_ROWS; y++) { 
@@ -1085,7 +1177,43 @@
             showModal("Поражение!", "Вы были побеждены призраками. Ваш инвентарь утерян.");
         }
         function handlePlayerMovement() { const p = gameState.player; p.dx = 0; p.dy = 0; if (keys.left.pressed) p.dx = -p.speed; if (keys.right.pressed) p.dx = p.speed; if (p.dx !== 0) p.lastDx = Math.sign(p.dx); if (gameState.currentLocation === 'surface') { if (keys.up.pressed && p.isGrounded) { p.vy = JUMP_STRENGTH; p.isGrounded = false; } } else { if (keys.up.pressed) p.dy = -p.speed; if (keys.down.pressed) p.dy = p.speed; if (p.dy !== 0) p.lastDy = Math.sign(p.dy); if (p.dx === 0 && p.dy !==0) { p.lastDx = 0; } else if (p.dy === 0 && p.dx !== 0) { p.lastDy = 0; } } }
-        function applyPhysics() { const p = gameState.player; if (gameState.currentLocation === 'surface') { p.vy += GRAVITY; p.x += p.dx; let nY = p.y + p.vy; if (nY + p.height >= GROUND_LEVEL) { nY = GROUND_LEVEL - p.height; p.vy = 0; p.isGrounded = true; } else { p.isGrounded = false; } p.y = nY; } else { p.isGrounded = true; p.vy = 0; let nX = p.x + p.dx; let nY = p.y + p.dy; const grid = gameState.mine.grid; if (!checkWallCollision(nX, nY, p.width, p.height, grid)) { p.x = nX; p.y = nY; } else { if (!checkWallCollision(nX, p.y, p.width, p.height, grid)) { p.x = nX; } if (!checkWallCollision(p.x, nY, p.width, p.height, grid)) { p.y = nY; } } } if (p.x < 0) p.x = 0; if (p.x + p.width > canvas.width) p.x = canvas.width - p.width; if (p.y < 0) p.y = 0; if (p.y + p.height > canvas.height) p.y = canvas.height - p.height; }
+        function applyPhysics() { 
+            const p = gameState.player; 
+            if (gameState.currentLocation === 'surface') { 
+                p.vy += GRAVITY; 
+                p.x += p.dx; 
+                let nY = p.y + p.vy; 
+                if (nY + p.height >= GROUND_LEVEL) { 
+                    nY = GROUND_LEVEL - p.height; 
+                    p.vy = 0; 
+                    p.isGrounded = true; 
+                } else { 
+                    p.isGrounded = false; 
+                } 
+                p.y = nY; 
+            } else { 
+                p.isGrounded = true; 
+                p.vy = 0; 
+                let nX = p.x + p.dx; 
+                let nY = p.y + p.dy; 
+                const grid = gameState.mine.grid; 
+                if (!checkWallCollision(nX, nY, p.width, p.height, grid)) { 
+                    p.x = nX; 
+                    p.y = nY; 
+                } else { 
+                    if (!checkWallCollision(nX, p.y, p.width, p.height, grid)) { 
+                        p.x = nX; 
+                    } 
+                    if (!checkWallCollision(p.x, nY, p.width, p.height, grid)) { 
+                        p.y = nY; 
+                    } 
+                } 
+            } 
+            // Кламп по границам мира
+            p.x = Math.max(cameraState.bounds.minX, Math.min(p.x, cameraState.bounds.maxX - p.width));
+            p.y = Math.max(cameraState.bounds.minY, Math.min(p.y, cameraState.bounds.maxY - p.height));
+        }
+
         function checkWallCollision(x,y,w,h,g){if(!g)return!1;const lT=Math.floor(x/TILE_SIZE),rT=Math.floor((x+w)/TILE_SIZE),tT=Math.floor(y/TILE_SIZE),bT=Math.floor((y+h)/TILE_SIZE);for(let row=tT;row<=bT;row++){for(let col=lT;col<=rT;col++){if(row<0||row>=MINE_ROWS||col<0||col>=MINE_COLS||g[row][col]===STONE_BLOCK_ID||g[row][col]===WOOD_BLOCK_ID||g[row][col]===PURE_ENERGY_BLOCK_ID)return!0}}return!1}
         function rectsOverlap(r1, r2) { return r1.x < r2.x + r2.width && r1.x + r1.width > r2.x && r1.y < r2.y + r2.height && r1.y + r1.height > r2.y; }
         function checkInteractionZones() { const p = gameState.player; let inZone = false; let target = null; const pRect = { x: p.x, y: p.y, width: p.width, height: p.height }; if (gameState.currentLocation === 'surface') { if (rectsOverlap(pRect, gameState.surface.mineEntrance) && gameState.hotbar.some(item => item && ITEMS[item.id].type === 'tool')) { inZone = true; target = {type: 'mineEntrance'}; } const sChest = gameState.surface.startingChest; const sChestRect = { x: sChest.x, y: sChest.y, width: TILE_SIZE, height: TILE_SIZE }; if (!sChest.isOpen && rectsOverlap(pRect, sChestRect) && gameState.stationInspected) { inZone = true; target = { type: 'startingChest' }; } if (!gameState.stationRepaired) { if(rectsOverlap(pRect, gameState.surface.stationRuins)) { inZone = true; target = {type: 'stationRuins'}; } } } else { const exit = gameState.mine.exit; if (rectsOverlap(pRect, exit)) { inZone = true; target = {type: 'mineExit'}; } const chest = gameState.mine.chest; const chestRect = { x: chest.x * TILE_SIZE, y: chest.y * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE }; if (!chest.isOpen && rectsOverlap(pRect, chestRect)) { inZone = true; target = {type: 'chest'}; } } p.canInteract = inZone; p.interactionTarget = target; }
@@ -1217,10 +1345,129 @@
             }
         } else { const facingTile = getFacingTile(); if (facingTile && gameState.currentLocation === 'mine') { const blockId = gameState.mine.grid[facingTile.y][facingTile.x]; const tool = gameState.player.activeHotbarIndex !== -1 ? gameState.hotbar[gameState.player.activeHotbarIndex] : null; if (blockId === WOOD_BLOCK_ID || blockId === PURE_ENERGY_BLOCK_ID) { ctx.font = "10px 'Press Start 2P'"; ctx.fillStyle = "white"; ctx.textAlign = "center"; ctx.fillText("УДАРИТЬ", facingTile.x * TILE_SIZE + TILE_SIZE / 2, facingTile.y * TILE_SIZE - 5); } } } }
         function drawSky(daylight) {const topColor = lerpColor(parseInt('0c1445', 16), parseInt('8cb0f0', 16), (Math.sin(daylight * 2 * Math.PI - Math.PI/2) + 1) / 2); const bottomColor = lerpColor(parseInt('3a53a1', 16), parseInt('d6e5ff', 16), (Math.sin(daylight * 2 * Math.PI - Math.PI/2) + 1) / 2); const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height); gradient.addColorStop(0, topColor); gradient.addColorStop(1, bottomColor); ctx.fillStyle = gradient; ctx.fillRect(0, 0, canvas.width, canvas.height);}
-        function drawLandscape() {ctx.fillStyle = '#343a40'; ctx.beginPath(); ctx.moveTo(0, GROUND_LEVEL); ctx.lineTo(100, 200); ctx.lineTo(250, 320); ctx.lineTo(500, GROUND_LEVEL); ctx.closePath(); ctx.fill(); ctx.fillStyle = '#5a823b'; ctx.fillRect(0, GROUND_LEVEL, canvas.width, canvas.height - GROUND_LEVEL); const arch = gameState.surface.mineEntrance; ctx.fillStyle = '#495057'; ctx.beginPath(); ctx.moveTo(650, GROUND_LEVEL); ctx.lineTo(700, 200); ctx.lineTo(800, 250); ctx.lineTo(800, GROUND_LEVEL); ctx.closePath(); ctx.fill(); ctx.fillStyle = '#212529'; ctx.beginPath(); ctx.moveTo(arch.x, arch.y + arch.height); ctx.quadraticCurveTo(arch.x + arch.width / 2, arch.y - 20, arch.x + arch.width, arch.y + arch.height); ctx.closePath(); ctx.fill(); ctx.fillStyle = '#2d1e14'; ctx.beginPath(); ctx.ellipse(250, GROUND_LEVEL + 30, 150, 40, 0, 0, 2 * Math.PI); ctx.fill(); }
-        function drawCrystals() { const crystalColors = ['#9d4edd', '#5a189a', '#00b4d8', '#48cae4', '#2dc653']; const pitCenterX = 250; const pitCenterY = GROUND_LEVEL + 30; for (let i = 0; i < 15; i++) { const angle = (i * 24) * Math.PI / 180; const radius = 20 + (i % 5) * 20 + Math.sin(angle + gameState.time / 20) * 5; const x = pitCenterX + Math.cos(angle) * radius; const y = pitCenterY + Math.sin(angle) * radius * 0.2; const height = 30 + (i % 3) * 15 + Math.sin(gameState.time / 15 + i) * 10; const width = 10 + (i % 2) * 5; ctx.fillStyle = crystalColors[i % crystalColors.length]; ctx.beginPath(); ctx.moveTo(x - width/2, y); ctx.lineTo(x + width/2, y); ctx.lineTo(x, y - height); ctx.closePath(); ctx.fill(); } }
-        function drawStation() { if (gameState.stationRepaired) { const baseX = 550; const baseY = GROUND_LEVEL; ctx.strokeStyle = '#4a4a4a'; ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(baseX - 50, baseY); ctx.lineTo(baseX - 50, baseY - 150); ctx.lineTo(baseX + 50, baseY - 150); ctx.lineTo(baseX + 50, baseY); ctx.moveTo(baseX - 80, baseY-100); ctx.lineTo(baseX - 50, baseY-100); ctx.stroke(); ctx.strokeStyle = '#6c757d'; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(350, GROUND_LEVEL + 10); ctx.lineTo(480, GROUND_LEVEL + 10); ctx.lineTo(480, baseY - 80); ctx.lineTo(baseX - 50, baseY-80); ctx.stroke(); ctx.fillStyle = 'rgba(173, 216, 230, 0.3)'; ctx.strokeStyle = '#adb5bd'; ctx.lineWidth = 4; ctx.beginPath(); ctx.roundRect(baseX - 40, baseY - 140, 80, 100, [10]); ctx.stroke(); ctx.fill(); const energyHeight = (gameState.pureEnergy / gameState.storage.capacity) * 90; ctx.fillStyle = `rgba(0, 255, 255, ${0.5 + Math.sin(gameState.time/10) * 0.1})`; ctx.fillRect(baseX - 35, baseY - 45 - energyHeight + 5, 70, energyHeight); } else { const ruin = gameState.surface.stationRuins; ctx.fillStyle = '#4a4a4a'; ctx.fillRect(ruin.x, ruin.y + 100, 100, 50); ctx.fillRect(ruin.x + 20, ruin.y + 80, 60, 20); ctx.fillStyle = '#6c757d'; ctx.fillRect(ruin.x + 50, ruin.y + 130, 10, 20); } }
-        function drawStartingChest() { const chest = gameState.surface.startingChest; const chestX = chest.x; const chestY = chest.y; ctx.fillStyle = '#8B4513'; ctx.fillRect(chestX + 5, chestY + 15, TILE_SIZE - 10, TILE_SIZE - 20); ctx.fillStyle = '#FFD700'; if (chest.isOpen) { ctx.fillRect(chestX + 3, chestY + 5, TILE_SIZE - 6, 8); } else { ctx.fillRect(chestX + 5, chestY + 10, TILE_SIZE - 10, 5); } }
+        
+        function drawLandscapeFar() {
+            ctx.fillStyle = '#343a40';
+            ctx.beginPath();
+            ctx.moveTo(0, GROUND_LEVEL);
+            ctx.lineTo(1000, 100);
+            ctx.lineTo(2000, 200);
+            ctx.lineTo(SURFACE_WORLD.width, GROUND_LEVEL);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function drawLandscapeNear() {
+            ctx.fillStyle = '#5a823b';
+            ctx.fillRect(0, GROUND_LEVEL, SURFACE_WORLD.width, SURFACE_WORLD.height - GROUND_LEVEL);
+            const arch = gameState.surface.mineEntrance;
+            ctx.fillStyle = '#495057';
+            ctx.beginPath();
+            ctx.moveTo(arch.x - 70, GROUND_LEVEL);
+            ctx.lineTo(arch.x - 20, 200);
+            ctx.lineTo(arch.x + 80, 250);
+            ctx.lineTo(arch.x + 130, GROUND_LEVEL);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = '#212529';
+            ctx.beginPath();
+            ctx.moveTo(arch.x, arch.y + arch.height);
+            ctx.quadraticCurveTo(arch.x + arch.width / 2, arch.y - 20, arch.x + arch.width, arch.y + arch.height);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = '#2d1e14';
+            ctx.beginPath();
+            ctx.ellipse(gameState.surface.stationRuins.x - 250, GROUND_LEVEL + 30, 150, 40, 0, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+
+        function drawCrystals() { 
+            const crystalColors = ['#9d4edd', '#5a189a', '#00b4d8', '#48cae4', '#2dc653']; 
+            const pitCenterX = gameState.surface.stationRuins.x - 250; 
+            const pitCenterY = GROUND_LEVEL + 30; 
+            for (let i = 0; i < 15; i++) { 
+                const angle = (i * 24) * Math.PI / 180; 
+                const radius = 20 + (i % 5) * 20 + Math.sin(angle + gameState.time / 20) * 5; 
+                const x = pitCenterX + Math.cos(angle) * radius; 
+                const y = pitCenterY + Math.sin(angle) * radius * 0.2; 
+                const height = 30 + (i % 3) * 15 + Math.sin(gameState.time / 15 + i) * 10; 
+                const width = 10 + (i % 2) * 5; 
+                ctx.fillStyle = crystalColors[i % crystalColors.length]; 
+                ctx.beginPath(); 
+                ctx.moveTo(x - width/2, y); 
+                ctx.lineTo(x + width/2, y); 
+                ctx.lineTo(x, y - height); 
+                ctx.closePath(); 
+                ctx.fill(); 
+            } 
+        }
+
+        function drawStation() { 
+            if (gameState.stationRepaired) { 
+                const baseX = gameState.surface.stationRuins.x + 50; 
+                const baseY = GROUND_LEVEL; 
+                ctx.strokeStyle = '#4a4a4a'; 
+                ctx.lineWidth = 8; 
+                ctx.beginPath(); 
+                ctx.moveTo(baseX - 50, baseY); 
+                ctx.lineTo(baseX - 50, baseY - 150); 
+                ctx.lineTo(baseX + 50, baseY - 150); 
+                ctx.lineTo(baseX + 50, baseY); 
+                ctx.moveTo(baseX - 80, baseY-100); 
+                ctx.lineTo(baseX - 50, baseY-100); 
+                ctx.stroke(); 
+                ctx.strokeStyle = '#6c757d'; 
+                ctx.lineWidth = 6; 
+                ctx.beginPath(); 
+                ctx.moveTo(baseX - 200, GROUND_LEVEL + 10); 
+                ctx.lineTo(baseX - 70, GROUND_LEVEL + 10); 
+                ctx.lineTo(baseX - 70, baseY - 80); 
+                ctx.lineTo(baseX - 50, baseY-80); 
+                ctx.stroke(); 
+                ctx.fillStyle = 'rgba(173, 216, 230, 0.3)'; 
+                ctx.strokeStyle = '#adb5bd'; 
+                ctx.lineWidth = 4; 
+                ctx.beginPath(); 
+                ctx.roundRect(baseX - 40, baseY - 140, 80, 100, [10]); 
+                ctx.stroke(); 
+                ctx.fill(); 
+                const energyHeight = (gameState.pureEnergy / gameState.storage.capacity) * 90; 
+                ctx.fillStyle = `rgba(0, 255, 255, ${0.5 + Math.sin(gameState.time/10) * 0.1})`; 
+                ctx.fillRect(baseX - 35, baseY - 45 - energyHeight + 5, 70, energyHeight); 
+            } else { 
+                const ruin = gameState.surface.stationRuins; 
+                ctx.fillStyle = '#4a4a4a'; 
+                ctx.fillRect(ruin.x, ruin.y + 100, 100, 50); 
+                ctx.fillRect(ruin.x + 20, ruin.y + 80, 60, 20); 
+                ctx.fillStyle = '#6c757d'; 
+                ctx.fillRect(ruin.x + 50, ruin.y + 130, 10, 20); 
+            } 
+        }
+
+        function drawStartingChest() { 
+            const chest = gameState.surface.startingChest; 
+            const chestX = chest.x; 
+            const chestY = chest.y; 
+            ctx.fillStyle = '#8B4513'; 
+            ctx.fillRect(chestX + 5, chestY + 15, TILE_SIZE - 10, TILE_SIZE - 20); 
+            ctx.fillStyle = '#FFD700'; 
+            if (chest.isOpen) { 
+                ctx.fillRect(chestX + 3, chestY + 5, TILE_SIZE - 6, 8); 
+            } else { 
+                ctx.fillRect(chestX + 5, chestY + 10, TILE_SIZE - 10, 5); 
+            } 
+        }
+        
+        function updateSurface() { 
+            gameState.dayNightCycle += 0.0005; 
+            if(gameState.stationRepaired && gameState.pureEnergy < gameState.storage.capacity) {
+                gameState.pureEnergy += gameState.collector.rate * gameState.purifier.efficiency;
+            }
+            handlePlayerMovement(); 
+            applyPhysics(); 
+            checkInteractionZones(); 
+            updateUI();
+        }
         
         function updateUI() { 
             const playerLives = gameState.player.lives;
@@ -1259,7 +1506,7 @@
                 switch(type) {
                     case 'collector': state.rate *= 1.4; break;
                     case 'purifier': state.efficiency = Math.min(0.95, state.efficiency + 0.05); break;
-                    case 'storage': state.capacity = Math.floor(state.capacity * 1.8); break;
+                    case 'storage': state.capacity = Math.floor(gameState.storage.capacity * 1.8); break;
                     case 'cooler': state.stability = Math.min(1.0, state.stability + 0.05); break;
                 }
             }
@@ -1507,6 +1754,10 @@
             // Initialize inventory and hotbar
             gameState.inventory = Array(INVENTORY_SIZE).fill(null);
             gameState.hotbar = Array(HOTBAR_SIZE).fill(null);
+            
+            // Set initial camera bounds and position
+            configureCameraBoundsFor('surface');
+            snapCameraToPlayer();
             showModalWithHint("Мир был разбит...", "Корпорация высосала спектральную энергию людей... тьма породила призрачные тени... Ты - Избранный и твоя задача - очистить мир и возродить источник чистой энергии.", "ПОДСКАДКА: Найди руины", gameLoop);
         }
         
