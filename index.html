@@ -448,10 +448,10 @@
 
         // Конфигурация и состояние камеры
         const CAMERA = {
-            zoom: 1.8,                 
+            zoom: 1.6,                 
             followLerp: 0.12,          
-            deadZoneW: 0.25,           
-            deadZoneH: 0.20,           
+            deadZoneW: 0.30,           
+            deadZoneH: 0.22,           
             pixelSnap: true
         };
 
@@ -463,7 +463,7 @@
         };
 
         // Размеры мира
-        const SURFACE_WORLD = { width: 2400, height: 450 };
+        const SURFACE_WORLD = { width: 1400, height: 450 };
 
         // Constants for game items and blocks
         const ITEMS = {
@@ -513,12 +513,12 @@
             collector: { level: 1, rate: 0.1 },
             purifier: { level: 1, efficiency: 0.5 },
             cooler: { level: 1, stability: 1.0 },
-            player: { x: 450, y: GROUND_LEVEL - 32, width: 16, height: 32, speed: BASE_PLAYER_SPEED, dx: 0, dy: 0, vy: 0, isGrounded: true, canInteract: false, interactionTarget: null, lives: 3, isInvincible: false, invincibilityTimer: 0, activeHotbarIndex: -1, lastDx: 1, lastDy: 0 },
+            player: { x: 520, y: GROUND_LEVEL - 32, width: 16, height: 32, speed: BASE_PLAYER_SPEED, dx: 0, dy: 0, vy: 0, isGrounded: true, canInteract: false, interactionTarget: null, lives: 3, isInvincible: false, invincibilityTimer: 0, activeHotbarIndex: -1, lastDx: 1, lastDy: 0 },
             mine: { grid: null, damagedBlocks: {}, loot: [], chest: { x: 0, y: 0, isOpen: false }, exit: { x: TILE_SIZE, y: TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE * 2 }, ghosts: [], ghostSpawnTimer: 0, hasExplored: false, notePickedUp: false },
             surface: { 
-                mineEntrance: { x: 2000, y: GROUND_LEVEL - 80, width: 60, height: 80 },
-                startingChest: { x: 1700, y: GROUND_LEVEL - TILE_SIZE, isOpen: false },
-                stationRuins: { x: 1000, y: GROUND_LEVEL - 150, width: 150, height: 150 }
+                mineEntrance: { x: 1100, y: GROUND_LEVEL - 80, width: 60, height: 80 },
+                startingChest: { x: 820, y: GROUND_LEVEL - TILE_SIZE, isOpen: false },
+                stationRuins: { x: 600, y: GROUND_LEVEL - 150, width: 150, height: 150 }
             },
             stationRepaired: false,
             stationInspected: false,
@@ -859,9 +859,15 @@
 
             // Отрисовка мира
             ctx.clearRect(0,0,canvas.width,canvas.height);
+            drawSky(gameState.dayNightCycle);
+
             beginWorldCamera();
             if (gameState.currentLocation === 'surface') {
-                drawSurface();
+                drawParallaxLayer(drawLandscapeFar, 0.5);
+                drawParallaxLayer(drawLandscapeNear, 1.0);
+                drawParallaxLayer(drawCrystals, 1.0);
+                drawStation(); 
+                drawStartingChest();
             } else {
                 drawMine();
                 drawGhosts();
@@ -996,17 +1002,17 @@
 
         // Drawing and update functions
         function drawSurface() { 
-            drawSky(gameState.dayNightCycle); 
-            drawParallaxLayer(drawLandscapeFar, 0.4);
-            drawParallaxLayer(drawLandscapeNear, 0.6);
+            drawParallaxLayer(drawLandscapeFar, 0.5);
+            drawParallaxLayer(drawLandscapeNear, 1.0);
             drawParallaxLayer(drawCrystals, 1.0);
             drawStation(); 
             drawStartingChest(); 
         }
-
+        
         function drawParallaxLayer(drawFn, factor){
             ctx.save();
-            ctx.translate(-cameraState.x*(factor-1), -cameraState.y*(factor-1));
+            const k = (1 - factor);
+            ctx.translate(cameraState.x * k, cameraState.y * k);
             drawFn();
             ctx.restore();
         }
@@ -1176,7 +1182,33 @@
             changeLocation('surface');
             showModal("Поражение!", "Вы были побеждены призраками. Ваш инвентарь утерян.");
         }
-        function handlePlayerMovement() { const p = gameState.player; p.dx = 0; p.dy = 0; if (keys.left.pressed) p.dx = -p.speed; if (keys.right.pressed) p.dx = p.speed; if (p.dx !== 0) p.lastDx = Math.sign(p.dx); if (gameState.currentLocation === 'surface') { if (keys.up.pressed && p.isGrounded) { p.vy = JUMP_STRENGTH; p.isGrounded = false; } } else { if (keys.up.pressed) p.dy = -p.speed; if (keys.down.pressed) p.dy = p.speed; if (p.dy !== 0) p.lastDy = Math.sign(p.dy); if (p.dx === 0 && p.dy !==0) { p.lastDx = 0; } else if (p.dy === 0 && p.dx !== 0) { p.lastDy = 0; } } }
+        function handlePlayerMovement() { 
+            const p = gameState.player; 
+            p.dx = 0; 
+            p.dy = 0; 
+            
+            if (keys.left.pressed) p.dx = -p.speed; 
+            if (keys.right.pressed) p.dx = p.speed; 
+            
+            if (gameState.currentLocation === 'surface') { 
+                if (keys.up.pressed && p.isGrounded) { 
+                    p.vy = JUMP_STRENGTH; 
+                    p.isGrounded = false; 
+                } 
+            } else { // mine
+                if (keys.up.pressed) p.dy = -p.speed; 
+                if (keys.down.pressed) p.dy = p.speed; 
+            }
+
+            // Correctly set the last direction for interaction
+            if (p.dx !== 0) {
+                p.lastDx = Math.sign(p.dx);
+                p.lastDy = 0;
+            } else if (p.dy !== 0) { // Prioritize vertical movement if horizontal is zero
+                p.lastDy = Math.sign(p.dy);
+                p.lastDx = 0;
+            }
+        }
         function applyPhysics() { 
             const p = gameState.player; 
             if (gameState.currentLocation === 'surface') { 
@@ -1289,8 +1321,8 @@
             if (gameState.player.isInvincible && Math.floor(gameState.time / 6) % 2 === 0) return; 
             const p = gameState.player; 
             const bobbing = !p.isGrounded ? 0 : Math.sin(gameState.time / 5) * 1; 
-
-            // Offset the drawing by 12 pixels to align the sprite with the bounding box
+            
+            // Настройка смещения для визуального выравнивания персонажа с землей.
             const drawOffset = 12;
 
             // Body
@@ -1301,11 +1333,11 @@
             ctx.fillStyle = '#2c3e50'; 
             if (keys.left.pressed || keys.right.pressed) { 
                 const legOffset = Math.sin(gameState.time / 4) * 3; 
-                ctx.fillRect(p.x + 2, p.y + 12 + drawOffset, 4, 8 - legOffset); 
-                ctx.fillRect(p.x + 10, p.y + 12 + drawOffset, 4, 8 + legOffset); 
+                ctx.fillRect(p.x + 2, p.y + 12 + bobbing + drawOffset, 4, 8 - legOffset); 
+                ctx.fillRect(p.x + 10, p.y + 12 + bobbing + drawOffset, 4, 8 + legOffset); 
             } else { 
-                ctx.fillRect(p.x + 2, p.y + 12 + drawOffset, 4, 8); 
-                ctx.fillRect(p.x + 10, p.y + 12 + drawOffset, 4, 8); 
+                ctx.fillRect(p.x + 2, p.y + 12 + bobbing + drawOffset, 4, 8); 
+                ctx.fillRect(p.x + 10, p.y + 12 + bobbing + drawOffset, 4, 8); 
             } 
             
             // Head and hat
