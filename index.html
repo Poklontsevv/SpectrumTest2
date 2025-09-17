@@ -429,13 +429,6 @@
         <div id="quests-view" class="view"><h2>Задания</h2><div id="quests-list"></div></div>
     </div>
     
-    <div id="bottom-nav">
-        <button class="nav-btn" data-view="shop-view"><div class="nav-icon"></div>Магазин</button>
-        <button class="nav-btn" data-view="notes-view"><div class="nav-icon"></div>Записки</button>
-        <button class="nav-btn active" data-view="play-view"><div class="nav-icon"></div>Играть</button>
-        <button class="nav-btn" data-view="quests-view"><div class="nav-icon"></div>Задания</button>
-    </div>
-    
     <div class="modal-overlay" id="genericModal"><div class="modal-content"><h2 id="modalTitle"></h2><p id="modalText"></p><div id="modalLootContainer" style="display: flex; flex-direction: column; gap: 15px; align-items: center; margin-top: 20px;"></div><div id="modalHint" class="modal-hint" style="display: none;"></div><button id="modalButton" class="action-button">Продолжить</button></div></div>
     <div class="modal-overlay" id="inventoryModal"><div class="modal-content"><h2>Инвентарь</h2><div id="inventoryGrid"></div><h3>Хотбар</h3><div id="hotbar-modal" class="hotbar-grid"></div><button id="closeInventoryBtn" class="action-button">Закрыть</button></div></div>
     <div class="modal-overlay" id="lootModal"><div class="modal-content"><h2 id="modalTitle">Добыча</h2><div id="lootContainer"></div><button id="closeLootBtn" class="action-button">Забрать</button></div></div>
@@ -790,39 +783,47 @@
             snapCameraToPlayer();
         }
         
+        // Исправленная функция mineBlock()
         function mineBlock() {
-            const p = gameState.player;
-            if (p.activeHotbarIndex === -1) return;
-            const tool = gameState.hotbar[p.activeHotbarIndex];
-            if (!tool || ITEMS[tool.id].type !== 'tool') return;
+          const p = gameState.player;
+          if (p.activeHotbarIndex === -1) return;
+          const tool = gameState.hotbar[p.activeHotbarIndex];
+          if (!tool || ITEMS[tool.id].type !== 'tool') return;
 
-            const facingTile = getFacingTile();
-            if (!facingTile) return;
+          const facingTile = getFacingTile();
+          if (!facingTile) return;
 
-            const blockId = gameState.mine.grid[facingTile.y][facingTile.x];
-            
-            // Allow mining only if the block is not a path or an unbreakable wall.
-            if (blockId === 0 || blockId === STONE_BLOCK_ID || blockId === LOOT_SPAWN_ID) return; 
+          const blockId = gameState.mine.grid[facingTile.y][facingTile.x];
 
-            // Use tool.power to mine any minable block
-            const tileKey = `${facingTile.x},${facingTile.y}`;
-            let currentDamage = gameState.mine.damagedBlocks[tileKey] || 0;
-            currentDamage += ITEMS[tool.id].power;
-            tool.durability--;
-            if (currentDamage >= BLOCK_HEALTH[blockId]) {
-                if (blockId === PURE_ENERGY_BLOCK_ID) {
-                    gameState.mine.grid[facingTile.y][facingTile.x] = 0;
-                    gameState.mine.loot.push({ x: facingTile.x, y: facingTile.y, id: 'white_crystal' });
-                } else {
-                    gameState.mine.grid[facingTile.y][facingTile.x] = 0;
-                }
-                delete gameState.mine.damagedBlocks[tileKey];
+          // не копаем воздух/камень/спавнер
+          if (blockId === 0 || blockId === STONE_BLOCK_ID || blockId === LOOT_SPAWN_ID) return;
+
+          const tileKey = `${facingTile.x},${facingTile.y}`;
+          let dmg = gameState.mine.damagedBlocks[tileKey] || 0;
+
+          // наносим урон инструментом
+          dmg += ITEMS[tool.id].power;
+          tool.durability--;
+
+          const hp = BLOCK_HEALTH[blockId];
+          if (dmg >= hp) {
+            // сломали блок
+            gameState.mine.grid[facingTile.y][facingTile.x] = 0;
+            if (blockId === PURE_ENERGY_BLOCK_ID) {
+              gameState.mine.loot.push({ x: facingTile.x, y: facingTile.y, id: 'white_crystal' });
             }
-            if (tool.durability <= 0) {
-                gameState.hotbar[p.activeHotbarIndex] = null;
-                p.activeHotbarIndex = -1;
-            }
-            updateHotbarUI(); // Обновляем хотбар после использования инструмента
+            delete gameState.mine.damagedBlocks[tileKey];
+          } else {
+            // блок пока жив — СОХРАНЯЕМ урон!
+            gameState.mine.damagedBlocks[tileKey] = dmg;
+          }
+
+          if (tool.durability <= 0) {
+            gameState.hotbar[p.activeHotbarIndex] = null;
+            p.activeHotbarIndex = -1;
+          }
+
+          updateHotbarUI();
         }
 
         function getFacingTile() {
