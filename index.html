@@ -324,6 +324,7 @@
             border: 2px solid var(--border-color);
             padding: 8px;
             border-radius: 8px;
+            z-index: 99;
         }
         #btn-inventory {
             width: 48px;
@@ -344,8 +345,9 @@
             #main-content {
                 height: 100svh;
                 justify-content: flex-start;
-                padding-bottom: 0; /* No need for padding with fixed controls */
+                padding-bottom: 0;
             }
+            .view { padding: 0; }
             .game-container {
                 height: auto;
                 max-width: 100%;
@@ -356,6 +358,7 @@
                 max-width: none;
                 height: auto;
                 aspect-ratio: 16 / 9;
+                margin-top: 44px;
             }
             canvas {
                 width: 100%; height: 100%;
@@ -383,10 +386,12 @@
             }
             
             #side-buttons {
+                position: absolute;
                 left: 6px;
                 top: calc(36px + 12px);
                 transform: none;
                 gap: 6px;
+                z-index: 101;
             }
             .side-btn { width: 40px; height: 40px; border-radius: 6px; }
             .side-btn span { transform: translateY(8px); }
@@ -399,7 +404,7 @@
                 padding: 10px 12px calc(env(safe-area-inset-bottom) + 10px);
                 justify-content: space-between;
                 align-items: flex-end;
-                z-index: 98;
+                z-index: 97;
                 pointer-events: none;
             }
             #dpad { 
@@ -407,15 +412,36 @@
                 grid-template-columns: repeat(3, 56px);
                 grid-template-rows: repeat(3, 56px); gap: 4px;
             }
-            .dpad-btn { width: 56px; height: 56px; border-radius: 6px; font-size: 18px; }
-            #btn-A { width: 88px; height: 88px; font-size: 32px; pointer-events: auto; }
+            #dpad-up   { grid-area: 1 / 2 / 2 / 3; }
+            #dpad-left { grid-area: 2 / 1 / 3 / 2; }
+            #dpad-right{ grid-area: 2 / 3 / 3 / 4; }
+            #dpad-down { grid-area: 3 / 2 / 4 / 3; }
+            .dpad-btn {
+                width: 56px; height: 56px;
+                background-color: var(--button-bg);
+                border: 2px solid var(--border-color);
+                border-radius: 6px;
+                color: var(--text-color);
+                display:flex; justify-content:center; align-items:center;
+                font-size: 18px; cursor:pointer;
+            }
+            #btn-A { 
+                width: 88px; height: 88px; 
+                border-radius: 50%;
+                background-color: var(--button-bg);
+                border: 2px solid var(--border-color);
+                color: var(--text-color);
+                display:flex; justify-content:center; align-items:center;
+                font-size: 32px; pointer-events:auto;
+            }
 
             #action-bar {
                 position: fixed;
-                bottom: calc(env(safe-area-inset-bottom) + 100px);
+                bottom: calc(env(safe-area-inset-bottom) + 180px);
                 left: 50%;
                 transform: translateX(-50%);
                 padding: 6px; gap: 4px;
+                z-index: 99;
             }
             #btn-inventory { width: 44px; height: 44px; font-size: 22px; }
             #hotbar-ui .inventory-slot { width: 54px; height: 54px; }
@@ -465,6 +491,17 @@
                             </div>
                         </div>
                     </div>
+                    <div id="side-buttons">
+                        <button class="side-btn" id="btn-quests" data-view="questsModal">
+                            <span>📜</span>
+                        </button>
+                        <button class="side-btn" id="btn-notes" data-view="notesModal">
+                            <span>📖</span>
+                        </button>
+                        <button class="side-btn" id="btn-shop" data-view="shopModal">
+                            <span>🛒</span>
+                        </button>
+                    </div>
                     <canvas id="gameCanvas" width="800" height="450"></canvas>
                 </div>
             </div>
@@ -493,18 +530,6 @@
                 <p>Скоро появится</p>
                 <button id="closeShopBtn" class="action-button">Закрыть</button>
             </div>
-        </div>
-
-        <div id="side-buttons">
-            <button class="side-btn" id="btn-quests" data-view="questsModal">
-                <span>📜</span>
-            </button>
-            <button class="side-btn" id="btn-notes" data-view="notesModal">
-                <span>📖</span>
-            </button>
-            <button class="side-btn" id="btn-shop" data-view="shopModal">
-                <span>🛒</span>
-            </button>
         </div>
     </div>
     
@@ -745,13 +770,11 @@
           const press = (e) => { e.preventDefault(); keys[k].pressed = true; };
           const release = (e) => { e.preventDefault(); keys[k].pressed = false; };
 
-          // Поддержка разных типов событий
           btn.addEventListener('pointerdown', press, { passive: false });
           btn.addEventListener('pointerup', release, { passive: false });
           btn.addEventListener('pointerleave', release, { passive: false });
           btn.addEventListener('pointercancel', release, { passive: false });
 
-          // На старых браузерах
           btn.addEventListener('touchstart', press, { passive: false });
           btn.addEventListener('touchend', release, { passive: false });
           btn.addEventListener('touchcancel', release, { passive: false });
