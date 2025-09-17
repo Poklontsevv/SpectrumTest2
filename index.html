@@ -36,18 +36,19 @@
         }
         
         #main-content {
-            flex-grow = 1;
+            flex-grow: 1;
             display: flex;
             flex-direction: column;
             width: 100%;
             align-items: center;
             overflow: hidden;
+            position: relative;
         }
 
         .view {
             width: 100%;
             height: 100%;
-            display: none;
+            display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
@@ -65,30 +66,78 @@
             gap: 10px;
             width: 100%;
             max-width: 800px;
+            height: 100%;
         }
         
-        #top-hud {
+        #hud-top {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            background-color: var(--ui-bg);
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            padding: 5px 15px;
-            box-sizing: border-box;
+            height: 50px;
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            margin-bottom: 5px;
+            padding: 0 10px;
+            box-sizing: border-box;
+            pointer-events: none;
+            z-index: 100;
+            background-color: var(--ui-bg);
+            border-bottom: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 10px;
         }
 
-        #top-life-container {
+        #hud-top > div {
+            pointer-events: auto;
+        }
+
+        #hud-left {
+            display: flex;
+            gap: 5px;
             font-size: 24px;
             color: #ff4757;
             letter-spacing: 2px;
+            width: 120px;
+        }
+        
+        #hud-center {
+            text-align: center;
+            font-size: 10px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 0 10px;
+        }
+        
+        #hud-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 5px;
+            font-size: 10px;
+            white-space: nowrap;
+            width: 150px;
+        }
+        .resource-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .resource-item {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            text-shadow: 0 0 5px var(--glow-color);
         }
 
         .game-wrapper {
             position: relative;
             width: 100%;
+            height: 100%;
             aspect-ratio: 800 / 450;
+            max-width: 800px;
+            max-height: 450px;
         }
 
         canvas {
@@ -99,63 +148,16 @@
             height: 100%;
             image-rendering: pixelated;
         }
-
-        #quest-display {
-            position: absolute;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: rgba(0, 0, 0, 0.6);
-            color: white;
-            padding: 5px 15px;
-            border-radius: 5px;
-            font-size: 10px;
-            text-align: center;
-            pointer-events: none;
-            z-index: 10;
-            white-space: nowrap;
-        }
-
-        .ui-panel, #mine-hud {
-            width: 100%;
-            background-color: var(--ui-bg);
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            padding: 10px 15px;
-            box-sizing: border-box;
-            user-select: none;
-            flex-shrink: 0;
-        }
-
+        
         .ui-panel {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-        .ui-panel.ruined-mode {
-            grid-template-columns: 1fr;
-        }
-         .ui-panel.ruined-mode .upgrade-panel {
-            display: none;
+            display: none; /* Убран из видимости */
         }
         
         .resource-panel, .upgrade-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .resource-display { font-size: 12px; text-shadow: 0 0 5px var(--glow-color); }
-        .hidden-stats {
-            display: none;
+            display: none; /* Убран из видимости */
         }
         
         .player-stats { display: flex; align-items: center; gap: 15px; margin-top: 5px; }
-        .hotbar-container {
-            display: flex;
-            gap: 5px;
-            align-items: center;
-        }
 
         .action-button {
              background-color: var(--button-bg);
@@ -268,101 +270,149 @@
         }
         .loot-item canvas { width: 40px; height: 40px; background: none; border: none; }
         
-        #mine-hud {
-            display: none;
-            flex-direction: row;
-            align-items: center;
-            justify-content: flex-end; 
-        }
-        .mine-hud-stats { 
-            display: flex; 
-            align-items: center; 
-            gap: 20px; 
-        }
-
-        #touch-controls {
-            display: none;
-            width: 100%;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 20px;
-            box-sizing: border-box;
-            flex-shrink: 0;
-        }
-        
-        #joystick-area {
-            width: 120px;
-            height: 120px;
-            position: relative;
-        }
-        #joystick-base {
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.3);
-            border-radius: 50%;
-            border: 2px solid var(--border-color);
-        }
-        #joystick-stick {
+        #side-buttons {
             position: absolute;
-            width: 60px;
-            height: 60px;
-            background: rgba(255,255,255,0.4);
-            border-radius: 50%;
-            left: 30px;
-            top: 30px;
-            transform: translate(0, 0);
-            transition: transform 0.1s;
-        }
-        #touch-interact {
-            width: 80px; height: 80px;
-            background: rgba(0,0,0,0.4);
-            border: 2px solid var(--border-color);
-            color: white; border-radius: 50%;
-            font-size: 24px;
-            display: flex; justify-content: center; align-items: center;
-        }
-
-        #bottom-nav {
-            display: flex;
-            width: 100%;
-            background-color: #000;
-            justify-content: space-around;
-            padding: 5px 0;
-            border-top: 2dpx solid var(--border-color);
-            flex-shrink: 0;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-        }
-        .nav-btn {
-            background: none;
-            border: none;
-            color: var(--text-color);
-            font-family: var(--font-pixel);
-            font-size: 10px;
-            cursor: pointer;
-            padding: 10px 5px;
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%);
             display: flex;
             flex-direction: column;
-            align-items: center;
-            gap: 5px;
-            border-bottom: 3px solid transparent;
+            gap: 8px;
+            pointer-events: auto;
+            z-index: 99;
         }
-        .nav-btn.active {
-            color: var(--glow-color);
-            border-bottom: 3px solid var(--glow-color);
-        }
-        .nav-icon {
-            width: 24px;
-            height: 24px;
+        .side-btn {
+            width: 48px;
+            height: 48px;
             background-color: var(--button-bg);
-            border-radius: 50%;
-            border: 1px solid var(--border-color);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-color);
+            font-size: 10px;
+            font-family: var(--font-pixel);
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 4px;
+        }
+        .side-btn:hover {
+            background-color: var(--button-hover-bg);
+        }
+        .side-btn.active {
+            border-color: var(--glow-color);
+        }
+        .side-btn span {
+            display: block;
+            line-height: 1;
+            text-align: center;
+            transform: translateY(12px);
         }
 
-        @media (max-width: 820px) and (orientation: portrait) {
-            body { justify-content: flex-start; }
-            .game-container, #mine-hud { flex-direction: column; gap: 15px; }
+        #action-bar {
+            position: fixed;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            pointer-events: auto;
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            background-color: var(--ui-bg);
+            border: 2px solid var(--border-color);
+            padding: 8px;
+            border-radius: 8px;
+        }
+        #btn-inventory {
+            width: 48px;
+            height: 48px;
+            font-size: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0;
+            border-radius: 8px;
+        }
+        
+        #mobile-controls {
+            display: none; /* Hidden by default on desktop */
+        }
+        
+        @media (hover:none), (pointer:coarse) {
+            #main-content {
+                justify-content: flex-start;
+                padding-bottom: 120px;
+            }
+            .game-container {
+                height: auto;
+                max-width: 100%;
+            }
+
+            #hud-top {
+                padding: 0 80px;
+            }
+
+            #hud-left, #hud-right {
+                width: 70px;
+            }
+            
+            #mobile-controls {
+                display: flex;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                justify-content: space-between;
+                align-items: flex-end;
+                padding: 10px;
+                box-sizing: border-box;
+                z-index: 98;
+                pointer-events: none;
+            }
+            #dpad {
+                display: grid;
+                grid-template-columns: repeat(3, 40px);
+                grid-template-rows: repeat(3, 40px);
+                gap: 2px;
+                pointer-events: auto;
+            }
+            .dpad-btn {
+                width: 40px;
+                height: 40px;
+                background-color: var(--button-bg);
+                border: 2px solid var(--border-color);
+                border-radius: 4px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                font-size: 16px;
+                cursor: pointer;
+            }
+            #dpad-up { grid-area: 1 / 2 / 2 / 3; }
+            #dpad-left { grid-area: 2 / 1 / 3 / 2; }
+            #dpad-right { grid-area: 2 / 3 / 3 / 4; }
+            #dpad-down { grid-area: 3 / 2 / 4 / 3; }
+
+            #btn-A {
+                width: 80px;
+                height: 80px;
+                background-color: var(--button-bg);
+                border: 2px solid var(--border-color);
+                border-radius: 50%;
+                color: white;
+                font-size: 32px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                pointer-events: auto;
+            }
+            #action-bar {
+                bottom: 100px;
+            }
+
+            .nav-btn, #bottom-nav {
+                display: none;
+            }
         }
     </style>
 </head>
@@ -371,68 +421,107 @@
     <div id="main-content">
         <div id="play-view" class="view active">
             <div class="game-container">
-                <div id="top-hud">
-                    <div id="top-life-container"></div>
-                </div>
                 <div class="game-wrapper">
-                    <canvas id="gameCanvas" width="800" height="450"></canvas>
-                    <div id="quest-display"></div>
-                </div>
-                <div class="ui-panel">
-                    <div class="resource-panel">
-                        <div id="resource-stats-container">
-                            <div class="resource-display" id="energyDisplay">ЭНЕРГИЯ: 0 / 100</div>
-                            <div class="resource-display" id="efficiencyDisplay">ЭФФЕКТИВНОСТЬ: 50%</div>
-                            <div class="resource-display" id="stabilityDisplay">СТАБИЛЬНОСТЬ: 100%</div>
-                        </div>
-                         <div class="player-stats">
-                            <button class="action-button" id="inventoryBtn">ИНВЕНТАРЬ</button>
-                            <!-- Hotbar on main UI -->
-                            <div id="hotbar-ui" class="hotbar-grid">
-                                <div class="inventory-slot" data-slot="0"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
-                                <div class="inventory-slot" data-slot="1"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
-                                <div class="inventory-slot" data-slot="2"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
+                    <div id="hud-top">
+                        <div id="hud-left"></div>
+                        <div id="hud-center"></div>
+                        <div id="hud-right">
+                             <div class="resource-row" id="crystal-stats">
+                                <div class="resource-item">
+                                    <span style="color:#d9534f">●</span>
+                                    <span id="cr-red">0</span>
+                                </div>
+                                <div class="resource-item">
+                                    <span style="color:white">●</span>
+                                    <span id="cr-white">0</span>
+                                </div>
+                                <div class="resource-item">
+                                    <span style="color:#5cb85c">●</span>
+                                    <span id="cr-green">0</span>
+                                </div>
+                                <div class="resource-item">
+                                    <span style="color:#5bc0de">●</span>
+                                    <span id="cr-blue">0</span>
+                                </div>
+                                <div class="resource-item">
+                                    <span style="color:#f0ad4e">●</span>
+                                    <span id="cr-yellow">0</span>
+                                </div>
+                            </div>
+                            <div class="resource-row">
+                                <span>⚡</span>
+                                <span id="energyDisplay">0 / 100</span>
                             </div>
                         </div>
                     </div>
-                    <div class="upgrade-panel">
-                        <button class="upgrade-button" id="upgradeCollector">Сборщик <span class="level" id="collectorLvl">УР. 1</span><span class="cost">Стоимость: 50</span></button>
-                        <button class="upgrade-button" id="upgradePurifier">Очиститель <span class="level" id="purifierLvl">УР. 1</span><span class="cost">Стоимость: 75</span></button>
-                        <button class="upgrade-button" id="upgradeStorage">Хранилище <span class="level" id="storageLvl">УР. 1</span><span class="cost">Стоимость: 100</span></button>
-                        <button class="upgrade-button" id="upgradeCooler">Охладитель <span class="level" id="coolerLvl">УР. 1</span><span class="cost">Стоимость: 150</span></button>
-                    </div>
-                </div>
-                <div id="mine-hud">
-                    <div class="mine-hud-stats">
-                        <div id="tool-durability"></div>
-                         <!-- Hotbar for mine-hud -->
-                        <div id="hotbar-ui-mine" class="hotbar-grid">
-                            <div class="inventory-slot" data-slot="0"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
-                            <div class="inventory-slot" data-slot="1"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
-                            <div class="inventory-slot" data-slot="2"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
-                        </div>
-                        <button class="action-button" id="mineInventoryBtn">ИНВЕНТАРЬ</button>
-                    </div>
-                </div>
-                <div id="touch-controls">
-                     <div id="joystick-area">
-                        <div id="joystick-base"></div>
-                        <div id="joystick-stick"></div>
-                    </div>
-                    <button id="touch-interact">A</button>
+                    <canvas id="gameCanvas" width="800" height="450"></canvas>
                 </div>
             </div>
         </div>
+        
+        <!-- Modal Views for Quests, Notes, and Shop -->
+        <div class="modal-overlay" id="questsModal">
+            <div class="modal-content">
+                <h2 id="questsModalTitle">Задания</h2>
+                <div id="quests-list"></div>
+                <button id="closeQuestsBtn" class="action-button">Закрыть</button>
+            </div>
+        </div>
 
-        <div id="shop-view" class="view"><h2>Магазин</h2><p>Скоро появится</p></div>
-        <div id="notes-view" class="view"><h2>Записки</h2><div id="notes-list"></div></div>
-        <div id="quests-view" class="view"><h2>Задания</h2><div id="quests-list"></div></div>
+        <div class="modal-overlay" id="notesModal">
+            <div class="modal-content">
+                <h2 id="notesModalTitle">Записки</h2>
+                <div id="notes-list"></div>
+                <button id="closeNotesBtn" class="action-button">Закрыть</button>
+            </div>
+        </div>
+        
+        <div class="modal-overlay" id="shopModal">
+            <div class="modal-content">
+                <h2 id="shopModalTitle">Магазин</h2>
+                <p>Скоро появится</p>
+                <button id="closeShopBtn" class="action-button">Закрыть</button>
+            </div>
+        </div>
+
+        <div id="side-buttons">
+            <button class="side-btn" id="btn-quests" data-view="questsModal">
+                <span>📜</span>
+            </button>
+            <button class="side-btn" id="btn-notes" data-view="notesModal">
+                <span>📖</span>
+            </button>
+            <button class="side-btn" id="btn-shop" data-view="shopModal">
+                <span>🛒</span>
+            </button>
+        </div>
+    </div>
+    
+    <div id="action-bar">
+        <button id="btn-inventory" class="action-button">🎒</button>
+        <div id="hotbar-ui" class="hotbar-grid">
+            <div class="inventory-slot" data-slot="0"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
+            <div class="inventory-slot" data-slot="1"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
+            <div class="inventory-slot" data-slot="2"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
+            <div class="inventory-slot" data-slot="3"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
+            <div class="inventory-slot" data-slot="4"><canvas width="40" height="40"></canvas><div class="item-count"></div></div>
+        </div>
+    </div>
+    
+    <div id="mobile-controls">
+        <div id="dpad">
+            <button class="dpad-btn" id="dpad-up">▲</button>
+            <button class="dpad-btn" id="dpad-left">◀</button>
+            <button class="dpad-btn" id="dpad-right">▶</button>
+            <button class="dpad-btn" id="dpad-down">▼</button>
+        </div>
+        <button id="btn-A">A</button>
     </div>
     
     <div class="modal-overlay" id="genericModal"><div class="modal-content"><h2 id="modalTitle"></h2><p id="modalText"></p><div id="modalLootContainer" style="display: flex; flex-direction: column; gap: 15px; align-items: center; margin-top: 20px;"></div><div id="modalHint" class="modal-hint" style="display: none;"></div><button id="modalButton" class="action-button">Продолжить</button></div></div>
     <div class="modal-overlay" id="inventoryModal"><div class="modal-content"><h2>Инвентарь</h2><div id="inventoryGrid"></div><h3>Хотбар</h3><div id="hotbar-modal" class="hotbar-grid"></div><button id="closeInventoryBtn" class="action-button">Закрыть</button></div></div>
     <div class="modal-overlay" id="lootModal"><div class="modal-content"><h2 id="modalTitle">Добыча</h2><div id="lootContainer"></div><button id="closeLootBtn" class="action-button">Забрать</button></div></div>
-
+    
     <script>
         // Game canvas and context
         const canvas = document.getElementById('gameCanvas');
@@ -485,7 +574,7 @@
         const GROUND_LEVEL = 350;
         const INVINCIBILITY_DURATION = 120;
         const INVENTORY_SIZE = 20;
-        const HOTBAR_SIZE = 3;
+        const HOTBAR_SIZE = 5;
 
         // Base speeds for different screen sizes
         const BASE_PLAYER_SPEED = 3;
@@ -623,67 +712,30 @@
                 case 's': case 'arrowdown': keys.down.pressed = false; break;
             }
         });
-
+        
         // Touch controls setup
-        function setupTouchControls() {
-            if (!('ontouchstart' in window || navigator.maxTouchPoints > 0)) {
-                // Hide touch controls on non-touch devices
-                document.getElementById('touch-controls').style.display = 'none';
-                return;
-            }
-            document.getElementById('touch-controls').style.display = 'flex';
-            
-            const joystickArea = document.getElementById('joystick-area');
-            const joystickStick = document.getElementById('joystick-stick');
-            let joystickActive = false;
-            let joystickStartX, joystickStartY;
-            const joystickRadius = joystickArea.offsetWidth / 2 - joystickStick.offsetWidth / 2;
-
-            joystickArea.addEventListener('touchstart', e => {
-                e.preventDefault();
-                joystickActive = true;
-                const touch = e.touches[0];
-                const rect = joystickArea.getBoundingClientRect();
-                joystickStartX = rect.left + rect.width / 2;
-                joystickStartY = rect.top + rect.height / 2;
-            }, { passive: false });
-
-            joystickArea.addEventListener('touchmove', e => {
-                if (!joystickActive) return;
-                e.preventDefault();
-                const touch = e.touches[0];
-                let dx = touch.clientX - joystickStartX;
-                let dy = touch.clientY - joystickStartY;
-                
-                const distance = Math.sqrt(dx*dx + dy*dy);
-                if (distance > joystickRadius) {
-                    dx = (dx / distance) * joystickRadius;
-                    dy = (dy / distance) * joystickRadius;
-                }
-
-                joystickStick.style.transform = `translate(${dx}px, ${dy}px)`;
-
-                const threshold = joystickRadius * 0.2;
-                keys.up.pressed = dy < -threshold;
-                keys.down.pressed = dy > threshold;
-                keys.left.pressed = dx < -threshold;
-                keys.right.pressed = dx > threshold;
-            }, { passive: false });
-            
-            const resetJoystick = (e) => {
-                 e.preventDefault();
-                joystickActive = false;
-                joystickStick.style.transform = 'translate(0px, 0px)';
-                keys.up.pressed = false;
-                keys.down.pressed = false;
-                keys.left.pressed = false;
-                keys.right.pressed = false;
-            };
-            joystickArea.addEventListener('touchend', resetJoystick);
-            joystickArea.addEventListener('touchcancel', resetJoystick);
-            
-            document.getElementById('touch-interact').addEventListener('touchstart', (e) => { e.preventDefault(); handleInteraction(); });
+        const isTouchDevice = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+        if (isTouchDevice) {
+            document.getElementById('mobile-controls').style.display = 'flex';
         }
+        
+        document.getElementById('btn-A').addEventListener('touchstart', (e) => { e.preventDefault(); handleInteraction(); });
+
+        document.querySelectorAll('#dpad .dpad-btn').forEach(btn => {
+            const direction = btn.id.split('-')[1];
+            const keyMap = { up: 'w', down: 's', left: 'a', right: 'd' };
+            const mappedKey = keyMap[direction];
+
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                keys[mappedKey] = true;
+            });
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                keys[mappedKey] = false;
+            });
+        });
+
 
         // Function to handle player interaction with game objects
         function handleInteraction() {
@@ -727,6 +779,12 @@
                 gameState.mine.chest.isOpen = false;
                 gameState.mine.ghosts = [];
                 p.x = gameState.mine.exit.x; p.y = gameState.mine.exit.y;
+                
+                // если кирка есть, но не выбран слот — выберем первый
+                if (p.activeHotbarIndex === -1) {
+                  const idx = gameState.hotbar.findIndex(i => i && ITEMS[i.id].type === 'tool');
+                  if (idx !== -1) p.activeHotbarIndex = idx;
+                }
                 
                 if (!gameState.mine.notePickedUp) {
                     const playerTileX = Math.floor(p.x / TILE_SIZE);
@@ -830,16 +888,21 @@
             const p = gameState.player;
             const pTileX = Math.floor((p.x + p.width / 2) / TILE_SIZE);
             const pTileY = Math.floor((p.y + p.height / 2) / TILE_SIZE);
-            const targetX = pTileX + p.lastDx;
-            const targetY = pTileY + p.lastDy;
+            let targetX, targetY;
+            
+            if(gameState.currentLocation === 'mine') {
+                targetX = pTileX + p.lastDx;
+                targetY = pTileY + p.lastDy;
+            } else {
+                 targetX = pTileX;
+                 targetY = pTileY;
+            }
+
             if (targetX >= 0 && targetX < MINE_COLS && targetY >= 0 && targetY < MINE_ROWS) {
                 return { x: targetX, y: targetY };
             }
             return null;
         }
-
-        const uiPanel = document.querySelector('.ui-panel');
-        const mineHud = document.getElementById('mine-hud');
 
         // Main game loop
         function gameLoop() {
@@ -847,13 +910,8 @@
             updateQuestSystem();
             if (gameState.currentLocation === 'surface') {
                 updateSurface(); 
-                uiPanel.style.display = 'grid';
-                mineHud.style.display = 'none';
-                uiPanel.classList.toggle('ruined-mode', !gameState.stationRepaired);
             } else { 
                 updateMine(); 
-                uiPanel.style.display = 'none';
-                mineHud.style.display = 'flex';
             }
             
             updateCameraFollow();
@@ -869,6 +927,7 @@
                 drawParallaxLayer(drawCrystals, 1.0);
                 drawStation(); 
                 drawStartingChest();
+                // drawStationUpgradePanel(); // Скрыли панель апгрейдов из-за нового UI
             } else {
                 drawMine();
                 drawGhosts();
@@ -1018,6 +1077,20 @@
             ctx.restore();
         }
 
+        function drawBlockHpBar(x, y, damage, maxHp) {
+            const barWidth = TILE_SIZE - 8;
+            const barHeight = 4;
+            const px = x * TILE_SIZE + 4;
+            const py = y * TILE_SIZE - 6;
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(px, py, barWidth, barHeight);
+
+            const fillWidth = (damage / maxHp) * barWidth;
+            ctx.fillStyle = '#ff4757';
+            ctx.fillRect(px, py, fillWidth, barHeight);
+        }
+
         function drawMine() { 
             ctx.fillStyle = '#2d2d2d'; 
             ctx.fillRect(0, 0, MINE_COLS * TILE_SIZE, MINE_ROWS * TILE_SIZE); 
@@ -1065,6 +1138,13 @@
             ctx.quadraticCurveTo(exit.x + exit.width / 2, exit.y - 20, exit.x + exit.width, exit.y + exit.height); 
             ctx.closePath(); 
             ctx.fill(); 
+
+            // Draw block HP bars
+            for (const key in gameState.mine.damagedBlocks) {
+                const [x, y] = key.split(',').map(Number);
+                const blockId = gameState.mine.grid[y][x];
+                drawBlockHpBar(x, y, gameState.mine.damagedBlocks[key], BLOCK_HEALTH[blockId]);
+            }
         }
         
         function findPath(grid, start, end) {
@@ -1376,7 +1456,10 @@
                 }
                 ctx.fillText(text, rect.x + rect.width / 2, yPos);
             }
-        } else { const facingTile = getFacingTile(); if (facingTile && gameState.currentLocation === 'mine') { const blockId = gameState.mine.grid[facingTile.y][facingTile.x]; const tool = gameState.player.activeHotbarIndex !== -1 ? gameState.hotbar[gameState.player.activeHotbarIndex] : null; if (blockId === WOOD_BLOCK_ID || blockId === PURE_ENERGY_BLOCK_ID) { ctx.font = "10px 'Press Start 2P'"; ctx.fillStyle = "white"; ctx.textAlign = "center"; ctx.fillText("УДАРИТЬ", facingTile.x * TILE_SIZE + TILE_SIZE / 2, facingTile.y * TILE_SIZE - 5); } } } }
+        } else { const facingTile = getFacingTile(); if (facingTile && gameState.currentLocation === 'mine') { const blockId = gameState.mine.grid[facingTile.y][facingTile.x]; const tool = gameState.player.activeHotbarIndex !== -1 ? gameState.hotbar[gameState.player.activeHotbarIndex] : null; if (blockId === WOOD_BLOCK_ID || blockId === PURE_ENERGY_BLOCK_ID) {
+                // Do not draw "УДАРИТЬ" text, HP bar is handled in drawMine()
+            } } } 
+        }
         function drawSky(daylight) {const topColor = lerpColor(parseInt('0c1445', 16), parseInt('8cb0f0', 16), (Math.sin(daylight * 2 * Math.PI - Math.PI/2) + 1) / 2); const bottomColor = lerpColor(parseInt('3a53a1', 16), parseInt('d6e5ff', 16), (Math.sin(daylight * 2 * Math.PI - Math.PI/2) + 1) / 2); const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height); gradient.addColorStop(0, topColor); gradient.addColorStop(1, bottomColor); ctx.fillStyle = gradient; ctx.fillRect(0, 0, canvas.width, canvas.height);}
         
         function drawLandscapeFar() {
@@ -1504,27 +1587,31 @@
         
         function updateUI() { 
             const playerLives = gameState.player.lives;
-            document.getElementById('top-life-container').textContent = '❤'.repeat(playerLives); 
+            document.getElementById('hud-left').textContent = '❤'.repeat(playerLives);
+            document.getElementById('hud-center').textContent = QUESTS[gameState.quests.activeQuestId]?.text || "Нет активных заданий";
 
-            // Show or hide resource stats based on station status
-            const resourceStatsContainer = document.getElementById('resource-stats-container');
-            if (gameState.stationRepaired) {
-                resourceStatsContainer.style.display = 'flex';
-                document.getElementById('energyDisplay').textContent = `ЭНЕРГИЯ: ${Math.floor(gameState.pureEnergy)} / ${gameState.storage.capacity}`; 
-                document.getElementById('efficiencyDisplay').textContent = `ЭФФЕКТИВНОСТЬ: ${Math.round(gameState.purifier.efficiency * 100)}%`;
-                document.getElementById('stabilityDisplay').textContent = `СТАБИЛЬНОСТЬ: ${Math.round(gameState.cooler.stability * 100)}%`;
-            } else {
-                 resourceStatsContainer.style.display = 'none';
-            }
-            
-            ['Collector', 'Purifier', 'Storage', 'Cooler'].forEach(type => {
-                const btn = document.getElementById(`upgrade${type}`);
-                const state = gameState[type.toLowerCase()];
-                const cost = upgradeCosts[type.toLowerCase()](state.level);
-                btn.querySelector('.level').textContent = `УР. ${state.level}`;
-                btn.querySelector('.cost').textContent = `Стоимость: ${cost}`;
-                btn.disabled = gameState.pureEnergy < cost;
-            });
+            const whiteCrystals = gameState.inventory.find(item => item && item.id === 'white_crystal')?.quantity || 0;
+            document.getElementById('cr-white').textContent = whiteCrystals;
+            // Other crystal counters are placeholders for now
+            document.getElementById('cr-red').textContent = 0;
+            document.getElementById('cr-green').textContent = 0;
+            document.getElementById('cr-blue').textContent = 0;
+            document.getElementById('cr-yellow').textContent = 0;
+
+            const currentEnergy = gameState.stationRepaired ? Math.floor(gameState.pureEnergy) : 0;
+            document.getElementById('energyDisplay').textContent = `${currentEnergy} / ${gameState.storage.capacity}`;
+
+            // Remove updates for upgrade buttons as the panel is hidden
+            // ['Collector', 'Purifier', 'Storage', 'Cooler'].forEach(type => {
+            //     const btn = document.getElementById(`upgrade${type}`);
+            //     if (btn) {
+            //         const state = gameState[type.toLowerCase()];
+            //         const cost = upgradeCosts[type.toLowerCase()](state.level);
+            //         btn.querySelector('.level').textContent = `УР. ${state.level}`;
+            //         btn.querySelector('.cost').textContent = `Стоимость: ${cost}`;
+            //         btn.disabled = gameState.pureEnergy < cost;
+            //     }
+            // });
 
             updateHotbarUI();
         }
@@ -1544,10 +1631,11 @@
                 }
             }
         }
-        document.getElementById('upgradeCollector').onclick = () => handleUpgrade('collector');
-        document.getElementById('upgradePurifier').onclick = () => handleUpgrade('purifier');
-        document.getElementById('upgradeStorage').onclick = () => handleUpgrade('storage');
-        document.getElementById('upgradeCooler').onclick = () => handleUpgrade('cooler');
+        // Удалены обработчики событий для кнопок апгрейдов
+        // document.getElementById('upgradeCollector').onclick = () => handleUpgrade('collector');
+        // document.getElementById('upgradePurifier').onclick = () => handleUpgrade('purifier');
+        // document.getElementById('upgradeStorage').onclick = () => handleUpgrade('storage');
+        // document.getElementById('upgradeCooler').onclick = () => handleUpgrade('cooler');
 
         function lerpColor(a, b, amount) { const ar = a >> 16, ag = a >> 8 & 0xff, ab = a & 0xff, br = b >> 16, bg = b >> 8 & 0xff, bb = b >> 8 & 0xff, rr = ar + amount * (br - ar), rg = ag + amount * (bg - ag), rb = ab + amount * (bb - ab); return `#${((1 << 24) + (rr << 16) + (rg << 8) + rb | 0).toString(16).slice(1).split('.')[0]}`; }
         
@@ -1584,14 +1672,10 @@
         const inventoryGrid = document.getElementById('inventoryGrid');
         const hotbarModal = document.getElementById('hotbar-modal');
         const hotbarUI = document.getElementById('hotbar-ui');
-        const hotbarUIMine = document.getElementById('hotbar-ui-mine');
         
         function updateHotbarUI() {
-            // Hotbar elements in the main UI and mine UI
-            const hotbarElements = [
-                ...document.querySelectorAll('#hotbar-ui .inventory-slot'),
-                ...document.querySelectorAll('#hotbar-ui-mine .inventory-slot')
-            ];
+            // Hotbar elements in the main UI
+            const hotbarElements = document.querySelectorAll('#hotbar-ui .inventory-slot');
 
             // Update all hotbar UIs simultaneously
             hotbarElements.forEach(slot => {
@@ -1700,8 +1784,7 @@
             inventoryModal.classList.add('visible');
         }
 
-        document.getElementById('inventoryBtn').onclick = openInventory;
-        document.getElementById('mineInventoryBtn').onclick = openInventory;
+        document.getElementById('btn-inventory').onclick = openInventory;
         document.getElementById('closeInventoryBtn').onclick = () => {
              const wasExamineInventoryQuestActive = gameState.quests.activeQuestId === 'examine_inventory';
              
@@ -1749,10 +1832,10 @@
         }
         
         // Quest system
-        const questDisplay = document.getElementById('quest-display');
         let mineHintShown = false;
         function updateQuestSystem() {
             const activeQuestId = gameState.quests.activeQuestId;
+            const questDisplay = document.getElementById('hud-center');
             if (!activeQuestId) {
                 questDisplay.textContent = "Нет активных заданий";
                 return;
@@ -1780,10 +1863,7 @@
                 gameState.player.speed = BASE_PLAYER_SPEED * 0.9; // Увеличиваем скорость персонажа
                 BASE_GHOST_SPEED = BASE_GHOST_SPEED * 0.9; // Увеличиваем скорость призраков
             }
-
-            // Initialize touch controls
-            setupTouchControls();
-
+            
             // Initialize inventory and hotbar
             gameState.inventory = Array(INVENTORY_SIZE).fill(null);
             gameState.hotbar = Array(HOTBAR_SIZE).fill(null);
@@ -1810,24 +1890,22 @@
 
         init();
         
-        // Navigation system
-        document.querySelectorAll('.nav-btn').forEach(button => {
+        // Navigation system for side buttons
+        document.querySelectorAll('#side-buttons .side-btn').forEach(button => {
             button.addEventListener('click', () => {
-                const targetViewId = button.dataset.view;
-                document.querySelectorAll('.view').forEach(view => {
-                    view.classList.remove('active');
-                });
-                document.querySelectorAll('.nav-btn').forEach(btn => {
-                    btn.classList.remove('active');
-                });
-                document.getElementById(targetViewId).classList.add('active');
-                button.classList.add('active');
+                const targetModalId = button.dataset.view;
+                document.getElementById(targetModalId).classList.add('visible');
 
-                if (targetViewId === 'notes-view') {
+                if (targetModalId === 'notesModal') {
                     updateNotesView();
                 }
             });
         });
+
+        // Close modal buttons
+        document.getElementById('closeQuestsBtn').onclick = () => document.getElementById('questsModal').classList.remove('visible');
+        document.getElementById('closeNotesBtn').onclick = () => document.getElementById('notesModal').classList.remove('visible');
+        document.getElementById('closeShopBtn').onclick = () => document.getElementById('shopModal').classList.remove('visible');
         
     </script>
 </body>
