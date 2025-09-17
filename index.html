@@ -256,6 +256,9 @@
             border-radius: 5px; position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer;
         }
         .inventory-slot.active { border-color: var(--glow-color); box-shadow: 0 0 10px var(--glow-color); }
+        .inventory-slot.drag-source { outline: 2px dashed var(--glow-color); }
+        .inventory-slot.drop-target { box-shadow: 0 0 10px var(--glow-color); }
+
         .inventory-slot canvas { width: 40px; height: 40px; background: none; border: none; }
         .item-count {
             position: absolute; bottom: 2px; right: 4px; font-size: 10px; color: white; text-shadow: 1px 1px 2px black;
@@ -341,11 +344,20 @@
             display: none; /* Hidden by default on desktop */
         }
         
+        #drag-ghost {
+          position: fixed;
+          pointer-events: none;
+          z-index: 2000;
+          width: 44px; height: 44px;
+          transform: translate(-50%, -50%);
+          display: none;
+        }
+
         @media (hover:none), (pointer:coarse) {
             #main-content {
                 height: 100svh;
                 justify-content: flex-start;
-                padding-bottom: 0;
+                padding: 0;
             }
             .view { padding: 0; }
             .game-container {
@@ -557,6 +569,7 @@
     <div class="modal-overlay" id="genericModal"><div class="modal-content"><h2 id="modalTitle"></h2><p id="modalText"></p><div id="modalLootContainer" style="display: flex; flex-direction: column; gap: 15px; align-items: center; margin-top: 20px;"></div><div id="modalHint" class="modal-hint" style="display: none;"></div><button id="modalButton" class="action-button">Продолжить</button></div></div>
     <div class="modal-overlay" id="inventoryModal"><div class="modal-content"><h2>Инвентарь</h2><div id="inventoryGrid"></div><h3>Хотбар</h3><div id="hotbar-modal" class="hotbar-grid"></div><button id="closeInventoryBtn" class="action-button">Закрыть</button></div></div>
     <div class="modal-overlay" id="lootModal"><div class="modal-content"><h2 id="modalTitle">Добыча</h2><div id="lootContainer"></div><button id="closeLootBtn" class="action-button">Забрать</button></div></div>
+    <canvas id="drag-ghost" width="44" height="44"></canvas>
     
     <script>
         // Запрет скролла на тач-устройствах
@@ -1700,6 +1713,97 @@
         const hotbarModal = document.getElementById('hotbar-modal');
         const hotbarUI = document.getElementById('hotbar-ui');
         
+        // --- DnD Variables ---
+        let dragState = {
+          active: false,
+          source: null,
+          item: null,
+          ghostCtx: null
+        };
+        const dragGhost = document.getElementById('drag-ghost');
+        if (dragGhost) dragState.ghostCtx = dragGhost.getContext('2d');
+        // --- DnD Utilities ---
+        function getSlotInfo(el) {
+          if (!el) return null;
+          if (el.dataset.inventoryIndex !== undefined) {
+            return { type: 'inventory', index: parseInt(el.dataset.inventoryIndex) };
+          }
+          if (el.dataset.hotbarIndex !== undefined) {
+            return { type: 'hotbar', index: parseInt(el.dataset.hotbarIndex) };
+          }
+          return null;
+        }
+        function readItem(info) {
+          if (!info) return null;
+          return info.type === 'inventory' ? gameState.inventory[info.index] : gameState.hotbar[info.index];
+        }
+        function writeItem(info, item) {
+          if (!info) return;
+          if (info.type === 'inventory') gameState.inventory[info.index] = item;
+          else gameState.hotbar[info.index] = item;
+        }
+        function currentSlotsFromInventory() {
+          return Array.from(inventoryGrid.querySelectorAll('.inventory-slot'));
+        }
+        function currentSlotsFromHotbar() {
+          return Array.from(hotbarModal.querySelectorAll('.inventory-slot'));
+        }
+        function slotElementFromInfo(info) {
+          if (!info) return null;
+          if (info.type === 'inventory')
+            return inventoryGrid.querySelector(`.inventory-slot[data-inventory-index="${info.index}"]`);
+          return hotbarModal.querySelector(`.inventory-slot[data-hotbar-index="${info.index}"]`);
+        }
+        function beginDrag(sourceInfo) {
+            const item = readItem(sourceInfo);
+            if (!item) return;
+
+            dragState.active = true;
+            dragState.source = sourceInfo;
+            dragState.item = item;
+
+            dragState.ghostCtx.clearRect(0,0,44,44);
+            drawItem(dragState.ghostCtx, item.id, 2, 2, 40);
+            dragGhost.style.display = 'block';
+
+            currentSlotsFromInventory().forEach(s => s.classList.remove('drag-source'));
+            currentSlotsFromHotbar().forEach(s => s.classList.remove('drag-source'));
+            slotElementFromInfo(sourceInfo)?.classList.add('drag-source');
+        }
+        function moveDrag(clientX, clientY) {
+            dragGhost.style.left = `${clientX}px`;
+            dragGhost.style.top = `${clientY}px`;
+        }
+        function endDrag(dropInfo) {
+            if (!dragState.active) return;
+            const src = dragState.source;
+            const srcItem = dragState.item;
+            const dst = dropInfo;
+
+            dragGhost.style.display = 'none';
+            dragState.active = false;
+            dragState.item = null;
+            const srcEl = slotElementFromInfo(src);
+            if (srcEl) srcEl.classList.remove('drag-source');
+
+            if (!dst) { openInventory(); return; }
+
+            const dstItem = readItem(dst);
+
+            writeItem(src, dstItem || null);
+            writeItem(dst, srcItem);
+
+            if (src.type === 'hotbar' && gameState.player.activeHotbarIndex === src.index) {
+              gameState.player.activeHotbarIndex = (dst.type === 'hotbar') ? dst.index : -1;
+            }
+            if (dst.type === 'hotbar' && gameState.player.activeHotbarIndex === -1 && srcItem && ITEMS[srcItem.id].type === 'tool') {
+                gameState.player.activeHotbarIndex = dst.index;
+            }
+
+            openInventory();
+        }
+        // --- End DnD Utilities ---
+
         function updateHotbarUI() {
             // Hotbar elements in the main UI
             const hotbarElements = document.querySelectorAll('#hotbar-ui .inventory-slot');
@@ -1780,33 +1884,44 @@
             // Render hotbar
             updateHotbarUI();
             
-            // Add click listeners
-            inventoryGrid.querySelectorAll('.inventory-slot').forEach(slot => {
-                slot.addEventListener('click', (e) => {
-                    const index = parseInt(e.currentTarget.dataset.inventoryIndex);
-                    const item = gameState.inventory[index];
-                    if (item && ITEMS[item.id].type === 'tool') {
-                        const emptyHotbarSlot = gameState.hotbar.findIndex(i => !i);
-                        if (emptyHotbarSlot !== -1) {
-                            gameState.hotbar[emptyHotbarSlot] = item;
-                            gameState.inventory[index] = null;
-                            gameState.player.activeHotbarIndex = emptyHotbarSlot;
-                            openInventory(); // Re-render to show changes
-                        }
-                    }
-                });
-            });
+            // --- DnD and Tap-to-Move handlers ---
+            function attachDnDHandlers(rootEl) {
+              const selector = '.inventory-slot';
+              rootEl.querySelectorAll(selector).forEach(slot => {
+                const info = getSlotInfo(slot);
 
-            hotbarModal.querySelectorAll('.inventory-slot').forEach(slot => {
-                slot.addEventListener('click', (e) => {
-                    const index = parseInt(e.currentTarget.dataset.hotbarIndex);
-                    const item = gameState.hotbar[index];
-                    if (item) {
-                        gameState.player.activeHotbarIndex = index;
-                        openInventory(); // Re-render to show changes
-                    }
+                // Drag start (pointer)
+                slot.addEventListener('pointerdown', (e) => {
+                  const item = readItem(info);
+                  if (!item) return;
+                  beginDrag(info);
+                  moveDrag(e.clientX, e.clientY);
                 });
-            });
+
+                // Tap-to-Move (двухтаповый режим)
+                slot.addEventListener('click', (e) => {
+                  const clicked = getSlotInfo(e.currentTarget);
+                  if (!dragState.active) {
+                    const item = readItem(clicked);
+                    if (item) beginDrag(clicked);
+                  } else {
+                    endDrag(clicked);
+                  }
+                });
+
+                // Подсветка потенциальной цели
+                slot.addEventListener('pointerenter', () => {
+                  if (dragState.active) slot.classList.add('drop-target');
+                });
+                slot.addEventListener('pointerleave', () => {
+                  slot.classList.remove('drop-target');
+                });
+              });
+            }
+
+            // Навешиваем на обе области (инвентарь + хотбар в модалке)
+            attachDnDHandlers(inventoryGrid);
+            attachDnDHandlers(hotbarModal);
 
             inventoryModal.classList.add('visible');
         }
@@ -1948,6 +2063,23 @@
         document.getElementById('closeNotesBtn').onclick = () => document.getElementById('notesModal').classList.remove('visible');
         document.getElementById('closeShopBtn').onclick = () => document.getElementById('shopModal').classList.remove('visible');
         
+        // DnD event handlers for the inventory modal
+        if (inventoryModal) {
+            inventoryModal.addEventListener('pointermove', (e) => { 
+                if (dragState.active) moveDrag(e.clientX, e.clientY); 
+            });
+
+            inventoryModal.addEventListener('pointerup', (e) => {
+              if (!dragState.active) return;
+              const el = document.elementFromPoint(e.clientX, e.clientY);
+              const dropInfo = getSlotInfo(el?.closest('.inventory-slot'));
+              endDrag(dropInfo);
+            });
+
+            inventoryModal.addEventListener('pointercancel', () => { 
+                if (dragState.active) endDrag(null); 
+            });
+        }
     </script>
 </body>
 </html>
