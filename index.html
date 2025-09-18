@@ -19,15 +19,16 @@
             --button-disabled-bg: #475569;
             --font-pixel: 'Press Start 2P', cursive;
         }
-
+        
         html, body {
-            height: 100%;
             margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100dvh;
             overflow: hidden;
             background-color: var(--primary-bg);
             touch-action: none;
         }
-        body, #main-content, canvas { touch-action: none; }
 
         body {
             color: var(--text-color);
@@ -36,47 +37,58 @@
             flex-direction: column;
             justify-content: space-between;
         }
-        
+
         #main-content {
-            flex-grow: 1;
+            position: fixed;
+            inset: 0;
             display: flex;
             flex-direction: column;
-            width: 100%;
             align-items: center;
+            justify-content: center;
             overflow: hidden;
-            position: relative;
+            touch-action: none;
         }
 
         .view {
             width: 100%;
             height: 100%;
-            display: flex;
+            display: none;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 10px;
             box-sizing: border-box;
         }
+
         .view.active {
             display: flex;
         }
-        
-        .game-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
+
+        .game-wrapper {
+            position: relative;
             width: 100%;
-            max-width: 800px;
             height: 100%;
+            max-width: 100%;
+            max-height: 100%;
+            aspect-ratio: 800 / 450;
+            background-color: black;
         }
         
+        canvas {
+            background-color: #000;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+            object-fit: contain;
+            aspect-ratio: 16 / 9;
+        }
+
         #hud-top {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
-            height: 50px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -121,11 +133,13 @@
             white-space: nowrap;
             width: 150px;
         }
+
         .resource-row {
             display: flex;
             align-items: center;
             gap: 8px;
         }
+
         .resource-item {
             display: flex;
             align-items: center;
@@ -133,34 +147,8 @@
             text-shadow: 0 0 5px var(--glow-color);
         }
 
-        .game-wrapper {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            aspect-ratio: 800 / 450;
-            max-width: 800px;
-            max-height: 450px;
-        }
-
-        canvas {
-            background-color: #000;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            width: 100%;
-            height: 100%;
-            image-rendering: pixelated;
-        }
-        
-        .ui-panel {
-            display: none; /* Убран из видимости */
-        }
-        
-        .resource-panel, .upgrade-panel {
-            display: none; /* Убран из видимости */
-        }
-        
-        .player-stats { display: flex; align-items: center; gap: 15px; margin-top: 5px; }
-
+        .ui-panel { display: none; }
+        .resource-panel, .upgrade-panel { display: none; }
         .action-button {
              background-color: var(--button-bg);
             border: 2px solid var(--border-color); color: var(--text-color); padding: 10px;
@@ -169,33 +157,38 @@
         .action-button:hover { background-color: var(--button-hover-bg); }
         .action-button:disabled { cursor: not-allowed; background-color: var(--button-disabled-bg); }
 
-        .upgrade-button {
-            background-color: var(--button-bg); border: 2px solid var(--border-color); color: var(--text-color);
-            padding: 10px; font-family: var(--font-pixel); font-size: 10px; cursor: pointer;
-            transition: background-color 0.2s; border-radius: 5px; text-align: left;
-        }
-        .upgrade-button:hover { background-color: var(--button-hover-bg); }
-        .upgrade-button:disabled { cursor: not-allowed; background-color: var(--button-disabled-bg); }
-        
-        .cost { display: block; font-size: 8px; color: #94a3b8; margin-top: 5px; }
-        .level { float: right; }
-
         .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.85);
-            display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden;
-            transition: opacity 0.3s, visibility 0.3s; z-index: 1000;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+            z-index: 1000;
         }
-        .modal-overlay.visible { opacity: 1; visibility: visible; }
+
+        .modal-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
         .modal-content {
-            background-color: var(--primary-bg); border: 2px solid var(--border-color); padding: 30px; 
-            border-radius: 8px; text-align: center; max-width: 600px; width: 90%;
-        }
-        .modal-content h2 { font-size: 16px; color: var(--glow-color); margin-bottom: 20px; line-height: 1.5; }
-        .modal-content p {
-            font-size: 12px;
+            background-color: var(--primary-bg);
+            border: 2px solid var(--border-color);
+            padding: 30px;
+            border-radius: 8px;
             text-align: center;
-            line-height: 1.8;
+            max-width: 600px;
+            width: 90%;
+            z-index: 1001;
         }
+
+        .modal-content h2 { font-size: 16px; color: var(--glow-color); margin-bottom: 20px; line-height: 1.5; }
+        .modal-content p { font-size: 12px; text-align: center; line-height: 1.8; }
         .modal-hint {
             background-color: var(--button-bg);
             border: 2px solid var(--glow-color);
@@ -205,10 +198,7 @@
             color: var(--glow-color);
             font-size: 10px;
         }
-        
-        #lootModal .modal-content {
-            max-width: 350px;
-        }
+
         #notes-list {
             display: flex;
             flex-direction: column;
@@ -239,7 +229,7 @@
 
         #inventoryGrid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr); /* 4 columns for 20 slots */
+            grid-template-columns: repeat(4, 1fr);
             gap: 10px;
             max-height: 300px; 
             min-height: 140px; 
@@ -248,9 +238,6 @@
             background: rgba(0,0,0,0.3); 
             border-radius: 5px;
         }
-        #inventoryModal .hotbar-grid {
-            margin-top: 15px;
-        }
         .inventory-slot {
             width: 60px; height: 60px; background-color: var(--button-bg); border: 2px solid var(--border-color);
             border-radius: 5px; position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer;
@@ -258,23 +245,21 @@
         .inventory-slot.active { border-color: var(--glow-color); box-shadow: 0 0 10px var(--glow-color); }
         .inventory-slot.drag-source { outline: 2px dashed var(--glow-color); }
         .inventory-slot.drop-target { box-shadow: 0 0 10px var(--glow-color); }
-
         .inventory-slot canvas { width: 40px; height: 40px; background: none; border: none; }
         .item-count {
             position: absolute; bottom: 2px; right: 4px; font-size: 10px; color: white; text-shadow: 1px 1px 2px black;
         }
-        
+
         .hotbar-grid {
             display: flex;
             gap: 5px;
         }
-
         .loot-item {
             display: flex; align-items: center; justify-content: center; gap: 15px;
             font-size: 14px;
         }
         .loot-item canvas { width: 40px; height: 40px; background: none; border: none; }
-        
+
         #side-buttons {
             position: absolute;
             left: 8px;
@@ -284,38 +269,21 @@
             flex-direction: column;
             gap: 8px;
             pointer-events: auto;
-            z-index: 99;
+            z-index: 101;
         }
         .side-btn {
-            width: 48px;
-            height: 48px;
-            background-color: var(--button-bg);
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            color: var(--text-color);
-            font-size: 10px;
-            font-family: var(--font-pixel);
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 4px;
+            width: 48px; height: 48px; background-color: var(--button-bg);
+            border: 2px solid var(--border-color); border-radius: 8px;
+            color: var(--text-color); font-size: 10px;
+            font-family: var(--font-pixel); cursor: pointer;
+            display: flex; justify-content: center; align-items: center; padding: 4px;
         }
-        .side-btn:hover {
-            background-color: var(--button-hover-bg);
-        }
-        .side-btn.active {
-            border-color: var(--glow-color);
-        }
-        .side-btn span {
-            display: block;
-            line-height: 1;
-            text-align: center;
-            transform: translateY(12px);
-        }
+        .side-btn:hover { background-color: var(--button-hover-bg); }
+        .side-btn.active { border-color: var(--glow-color); }
+        .side-btn span { display: block; line-height: 1; text-align: center; transform: translateY(12px); }
 
         #action-bar {
-            position: fixed;
+            position: absolute;
             bottom: 8px;
             left: 50%;
             transform: translateX(-50%);
@@ -327,22 +295,15 @@
             border: 2px solid var(--border-color);
             padding: 8px;
             border-radius: 8px;
-            z-index: 99;
+            z-index: 102;
         }
         #btn-inventory {
-            width: 48px;
-            height: 48px;
-            font-size: 24px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 0;
-            border-radius: 8px;
+            width: 48px; height: 48px; font-size: 24px;
+            display: flex; justify-content: center; align-items: center;
+            padding: 0; border-radius: 8px;
         }
-        
-        #mobile-controls {
-            display: none; /* Hidden by default on desktop */
-        }
+
+        #mobile-controls { display: none; }
         
         #drag-ghost {
           position: fixed;
@@ -359,26 +320,28 @@
                 justify-content: flex-start;
                 padding: 0;
             }
-            .view { padding: 0; }
-            .game-container {
-                height: auto;
-                max-width: 100%;
-                gap: 0;
-            }
+
             .game-wrapper {
                 width: 100vw;
                 max-width: none;
                 height: auto;
                 aspect-ratio: 16 / 9;
-                margin-top: 44px;
+                margin-top: 0; /* No margin-top needed, HUD is absolute */
+                z-index: 1;
             }
+
             canvas {
-                width: 100%; height: 100%;
+                width: 100%;
+                height: 100%;
+                border: none;
+                border-radius: 0;
             }
 
             #hud-top {
-                position: absolute; top: 4px; left: 4px;
-                width: calc(100% - 8px);
+                position: absolute;
+                top: calc(env(safe-area-inset-top) + 4px);
+                left: calc(env(safe-area-inset-left) + 4px);
+                width: calc(100% - env(safe-area-inset-left) - env(safe-area-inset-right) - 8px);
                 height: 36px; font-size: 8px; border-radius: 6px;
                 padding: 0 8px;
             }
@@ -387,21 +350,24 @@
                 font-size: 18px; gap: 4px; white-space: nowrap;
                 width: auto;
             }
-            #hud-center { 
-                font-size: 8px; padding: 0 6px; 
+            
+            #hud-center {
+                font-size: 8px;
+                padding: 0 6px;
             }
-            #hud-right { 
+
+            #hud-right {
                 width: auto; gap: 2px; font-size: 8px;
             }
-            #crystal-stats .resource-item { 
+            #crystal-stats .resource-item {
                 gap: 2px;
             }
-            
+
             #side-buttons {
                 position: absolute;
-                left: 6px;
-                top: calc(36px + 12px);
-                transform: none;
+                left: calc(env(safe-area-inset-left) + 6px);
+                top: 50%;
+                transform: translateY(-50%);
                 gap: 6px;
                 z-index: 101;
             }
@@ -410,10 +376,12 @@
 
             #mobile-controls {
                 display: flex;
-                position: fixed; left: 0;
+                position: absolute;
+                left: calc(env(safe-area-inset-left));
+                right: calc(env(safe-area-inset-right));
                 bottom: calc(env(safe-area-inset-bottom));
-                width: 100%;
-                padding: 10px 12px calc(env(safe-area-inset-bottom) + 10px);
+                width: auto;
+                padding: 10px 12px;
                 justify-content: space-between;
                 align-items: flex-end;
                 z-index: 97;
@@ -437,8 +405,8 @@
                 display:flex; justify-content:center; align-items:center;
                 font-size: 18px; cursor:pointer;
             }
-            #btn-A { 
-                width: 88px; height: 88px; 
+            #btn-A {
+                width: 88px; height: 88px;
                 border-radius: 50%;
                 background-color: var(--button-bg);
                 border: 2px solid var(--border-color);
@@ -448,19 +416,20 @@
             }
 
             #action-bar {
-                position: fixed;
+                position: absolute;
                 bottom: calc(env(safe-area-inset-bottom) + 180px);
                 left: 50%;
                 transform: translateX(-50%);
                 padding: 6px; gap: 4px;
-                z-index: 99;
+                z-index: 102;
             }
             #btn-inventory { width: 44px; height: 44px; font-size: 22px; }
-            #hotbar-ui .inventory-slot { width: 54px; height: 54px; }
-            #hotbar-ui canvas { width: 36px; height: 36px; }
+            #hotbar-ui .inventory-slot { width: 48px; height: 48px; }
+            #hotbar-ui canvas { width: 32px; height: 32px; }
 
             .modal-content {
-                 width: 92vw; max-width: 92vw; padding: 20px;
+                width: 92vw; max-width: 92vw; padding: 20px;
+                z-index: 1001;
             }
         }
     </style>
@@ -470,13 +439,12 @@
 
     <div id="main-content">
         <div id="play-view" class="view active">
-            <div class="game-container">
-                <div class="game-wrapper">
-                    <div id="hud-top">
-                        <div id="hud-left"></div>
-                        <div id="hud-center"></div>
-                        <div id="hud-right">
-                             <div class="resource-row" id="crystal-stats">
+            <div class="game-wrapper">
+                <div id="hud-top">
+                    <div id="hud-left"></div>
+                    <div id="hud-center"></div>
+                    <div id="hud-right">
+                            <div class="resource-row" id="crystal-stats">
                                 <div class="resource-item">
                                     <span style="color:#d9534f">●</span>
                                     <span id="cr-red">0</span>
@@ -502,21 +470,20 @@
                                 <span>⚡</span>
                                 <span id="energyDisplay">0 / 100</span>
                             </div>
-                        </div>
                     </div>
-                    <div id="side-buttons">
-                        <button class="side-btn" id="btn-quests" data-view="questsModal">
-                            <span>📜</span>
-                        </button>
-                        <button class="side-btn" id="btn-notes" data-view="notesModal">
-                            <span>📖</span>
-                        </button>
-                        <button class="side-btn" id="btn-shop" data-view="shopModal">
-                            <span>🛒</span>
-                        </button>
-                    </div>
-                    <canvas id="gameCanvas" width="800" height="450"></canvas>
                 </div>
+                <div id="side-buttons">
+                    <button class="side-btn" id="btn-quests" data-view="questsModal">
+                        <span>📜</span>
+                    </button>
+                    <button class="side-btn" id="btn-notes" data-view="notesModal">
+                        <span>📖</span>
+                    </button>
+                    <button class="side-btn" id="btn-shop" data-view="shopModal">
+                        <span>🛒</span>
+                    </button>
+                </div>
+                <canvas id="gameCanvas" width="800" height="450"></canvas>
             </div>
         </div>
         
@@ -2084,14 +2051,13 @@
 
   // Утилита: безопасный вызов
   const safe = (fn) => { try { return fn(); } catch(e) {} };
+  let hasUserInteracted = false;
 
   // 1) Разворачиваем TMA-вебвью на максимально доступную высоту
   function expandWebApp() {
     if (window.Telegram && Telegram.WebApp) {
       safe(() => Telegram.WebApp.expand());
-      // Слегка маскируем шапку, если она есть
       safe(() => Telegram.WebApp.setHeaderColor('secondary_bg_color'));
-      // Отключаем вертикальные свайпы, где доступно
       safe(() => Telegram.WebApp.disableVerticalSwipes && Telegram.WebApp.disableVerticalSwipes());
     }
   }
@@ -2127,25 +2093,21 @@
       document.body.style.position = '';
       document.body.style.left = '';
       document.body.style.top = '';
-      document.body.style.overflow = 'hidden'; // у вас уже скрыт скролл — оставляем
+      document.body.style.overflow = 'hidden';
 
       if (!isPortrait) {
-        // В альбомной ориентации — никаких искусственных поворотов
         return;
       }
 
-      // Портрет: поворачиваем на 90 градусов и вписываем на экран
       const w = window.innerWidth;
       const h = window.innerHeight;
 
-      // Ширина/высота меняются местами из-за поворота
       document.body.style.width  = h + 'px';
       document.body.style.height = w + 'px';
 
       document.body.style.transform = 'rotate(90deg)';
       document.body.style.transformOrigin = 'center center';
 
-      // Делаем body фиксированным слоем и центрируем
       document.body.style.position = 'fixed';
       document.body.style.left = (w - h) / 2 + 'px';
       document.body.style.top  = (h - w) / 2 + 'px';
@@ -2156,26 +2118,33 @@
     window.addEventListener('resize', () => setLayout(window.matchMedia('(orientation: portrait)').matches));
   }
 
-  async function run() {
-    expandWebApp();           // всегда ок
-    await requestFullscreen(); // где доступно
-    await lockLandscape();     // где доступно
-    applyLandscapeFallback();  // фолбэк для остальных сред (iOS и пр.)
+  function runOnUserInteraction() {
+    if (!hasUserInteracted) {
+      hasUserInteracted = true;
+      requestFullscreen();
+      lockLandscape();
+    }
   }
 
-  // Ждём готовности TMA, если он есть
   function onTMAReady(cb) {
     if (window.Telegram && Telegram.WebApp) {
       safe(() => Telegram.WebApp.ready());
-      // Если API уже инициализирован — просто запускаем
       cb();
     } else {
-      // Вне Telegram — тоже запускаем (например, локальная отладка в браузере)
       cb();
     }
   }
 
-  onTMAReady(run);
+  onTMAReady(() => {
+    expandWebApp();
+    applyLandscapeFallback();
+  });
+  
+  // Добавляем обработчик на первое взаимодействие пользователя
+  document.addEventListener('click', runOnUserInteraction, { once: true });
+  document.addEventListener('touchstart', runOnUserInteraction, { once: true });
+  document.addEventListener('keydown', runOnUserInteraction, { once: true });
+
 })();
 </script>
 </body>
