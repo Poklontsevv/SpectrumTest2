@@ -464,6 +464,7 @@
             }
         }
     </style>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
 
@@ -681,11 +682,6 @@
                 text: 'Задача: Изучи инвентарь',
                 isComplete: (state) => state.hotbar.some(item => item && ITEMS[item.id].type === 'tool'),
                 nextQuest: 'explore_mine'
-            },
-            'explore_mine': {
-                text: 'Задача: Изучи шахты',
-                isComplete: (state) => state.mine.hasExplored,
-                nextQuest: 'collect_crystals'
             },
             'collect_crystals': {
                 text: 'Задача: Собери 2 белых кристалла',
@@ -2081,5 +2077,106 @@
             });
         }
     </script>
+<script>
+(function () {
+  // Ничего в игре не трогаем: работаем только с оболочкой.
+  // Важно запускать это ПОСЛЕ того, как DOM уже построен (ставим в конец <body>).
+
+  // Утилита: безопасный вызов
+  const safe = (fn) => { try { return fn(); } catch(e) {} };
+
+  // 1) Разворачиваем TMA-вебвью на максимально доступную высоту
+  function expandWebApp() {
+    if (window.Telegram && Telegram.WebApp) {
+      safe(() => Telegram.WebApp.expand());
+      // Слегка маскируем шапку, если она есть
+      safe(() => Telegram.WebApp.setHeaderColor('secondary_bg_color'));
+      // Отключаем вертикальные свайпы, где доступно
+      safe(() => Telegram.WebApp.disableVerticalSwipes && Telegram.WebApp.disableVerticalSwipes());
+    }
+  }
+
+  // 2) Реальный fullscreen (если вебвью разрешает)
+  async function requestFullscreen() {
+    const el = document.documentElement;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+    if (req) {
+      try { await req.call(el); } catch (e) { /* отказ — ок */ }
+    }
+  }
+
+  // 3) Блокировка ориентации в landscape (Android/WebView где доступно)
+  async function lockLandscape() {
+    if (screen.orientation && screen.orientation.lock) {
+      try { await screen.orientation.lock('landscape'); } catch (e) { /* iOS/WebView обычно отказывает — это ок */ }
+    }
+  }
+
+  // 4) CSS-фолбэк для iOS/запретных сред:
+  //    В портретной ориентации поворачиваем ВСЁ приложение (body) на 90deg,
+  //    подгоняем размеры и позицию так, чтобы контент занимал весь экран.
+  function applyLandscapeFallback() {
+    const mqPortrait = window.matchMedia('(orientation: portrait)');
+
+    function setLayout(isPortrait) {
+      // Сбрасываем всё по умолчанию
+      document.body.style.transform = '';
+      document.body.style.transformOrigin = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+      document.body.style.position = '';
+      document.body.style.left = '';
+      document.body.style.top = '';
+      document.body.style.overflow = 'hidden'; // у вас уже скрыт скролл — оставляем
+
+      if (!isPortrait) {
+        // В альбомной ориентации — никаких искусственных поворотов
+        return;
+      }
+
+      // Портрет: поворачиваем на 90 градусов и вписываем на экран
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+
+      // Ширина/высота меняются местами из-за поворота
+      document.body.style.width  = h + 'px';
+      document.body.style.height = w + 'px';
+
+      document.body.style.transform = 'rotate(90deg)';
+      document.body.style.transformOrigin = 'center center';
+
+      // Делаем body фиксированным слоем и центрируем
+      document.body.style.position = 'fixed';
+      document.body.style.left = (w - h) / 2 + 'px';
+      document.body.style.top  = (h - w) / 2 + 'px';
+    }
+
+    setLayout(mqPortrait.matches);
+    mqPortrait.addEventListener('change', (e) => setLayout(e.matches));
+    window.addEventListener('resize', () => setLayout(window.matchMedia('(orientation: portrait)').matches));
+  }
+
+  async function run() {
+    expandWebApp();           // всегда ок
+    await requestFullscreen(); // где доступно
+    await lockLandscape();     // где доступно
+    applyLandscapeFallback();  // фолбэк для остальных сред (iOS и пр.)
+  }
+
+  // Ждём готовности TMA, если он есть
+  function onTMAReady(cb) {
+    if (window.Telegram && Telegram.WebApp) {
+      safe(() => Telegram.WebApp.ready());
+      // Если API уже инициализирован — просто запускаем
+      cb();
+    } else {
+      // Вне Telegram — тоже запускаем (например, локальная отладка в браузере)
+      cb();
+    }
+  }
+
+  onTMAReady(run);
+})();
+</script>
 </body>
 </html>
